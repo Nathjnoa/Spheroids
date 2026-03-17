@@ -1,0 +1,12 @@
+group_id,group_label,type,spheroids,immune_cells,donor,activated,timepoints_available
+CTR1,Esferoides solos,control,yes,none,none,no,"24h,48h,72h"
+CTR2,Esferoides + PBMC D1,control,yes,PBMC,1,no,"24h,48h,72h"
+CTR3,Esferoides + PBMC D2,control,yes,PBMC,2,no,"24h,48h,72h"
+CTR4,Esferoides + PBMC D1 activados,control,yes,PBMC,1,yes,"24h,48h,72h"
+CTR5,Esferoides + PBMC D2 activados,control,yes,PBMC,2,yes,"24h,48h,72h"
+TRT1,Esferoides + CAR-T D1,treatment,yes,CAR-T,1,no,"24h,48h"
+TRT2,Esferoides + CAR-T D2,treatment,yes,CAR-T,2,no,"24h,48h"
+TRT3,Esferoides + PBMC D1 + CAR-T D1,treatment,yes,PBMC+CAR-T,1,no,"24h,48h"
+TRT4,Esferoides + PBMC D2 + CAR-T D2,treatment,yes,PBMC+CAR-T,2,no,"24h,48h"
+TRT5,Esferoides + PBMC D1 activados + CAR-T D1,treatment,yes,PBMC+CAR-T,1,yes,"24h,48h"
+TRT6,Esferoides + PBMC D2 activados + CAR-T D2,treatment,yes,PBMC+CAR-T,2,yes,"24h,48h"

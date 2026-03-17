@@ -1,7 +1,12 @@
 # Data and results (reproducible from scripts)
 data/
-results/
 logs/
+
+# Results: exclude everything except PNG figures
+results/
+!results/
+!results/figures/
+!results/figures/*.png
 
 # R / RStudio
 .Rhistory
