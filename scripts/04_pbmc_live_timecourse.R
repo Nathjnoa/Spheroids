@@ -80,6 +80,7 @@ print(df_plot)
 line_colors <- c("- CAR-T" = "#555555", "+ CAR-T" = "#D55E00")
 line_types  <- c("- CAR-T" = "solid",   "+ CAR-T" = "solid")
 line_shapes <- c("- CAR-T" = 16,        "+ CAR-T" = 17)   # círculo vs triángulo
+leg_labels  <- c("- CAR-T" = "Sph+PBMC", "+ CAR-T" = "Sph+PBMC+CAR-T")
 
 # ── Tema ──────────────────────────────────────────────────────────────────────
 theme_flow <- theme_bw(base_size = 13) +
@@ -87,6 +88,7 @@ theme_flow <- theme_bw(base_size = 13) +
     axis.text.x        = element_text(size = 10, hjust = 0.5, lineheight = 0.9),
     axis.text.y        = element_text(size = 11),
     axis.title         = element_text(size = 12),
+    plot.title         = element_text(size = 10, face = "bold", hjust = 0.5),
     legend.position    = "top",
     legend.title       = element_blank(),
     legend.text        = element_text(size = 11),
@@ -103,9 +105,9 @@ make_line_plot <- function(data, act_val, title) {
                         shape = line, linetype = line)) +
     geom_line(linewidth = 0.9) +
     geom_point(size = 3.5) +
-    scale_color_manual(values = line_colors) +
-    scale_shape_manual(values = line_shapes) +
-    scale_linetype_manual(values = line_types) +
+    scale_color_manual(values = line_colors, labels = leg_labels) +
+    scale_shape_manual(values = line_shapes, labels = leg_labels) +
+    scale_linetype_manual(values = line_types, labels = leg_labels) +
     scale_y_continuous(
       breaks = seq(0, 7000, 500),
       labels = function(x) ifelse(x %% 1000 == 0,
@@ -123,12 +125,12 @@ make_line_plot <- function(data, act_val, title) {
 
 # ── Generar figuras ───────────────────────────────────────────────────────────
 p_noact <- make_line_plot(df_plot, "NO_ACTIVADOS",
-                          "A549+MRC-5 + PBMC + CAR-T")
+                          "A549+MRC-5+Non-activated PBMC+CAR-T")
 p_act   <- make_line_plot(df_plot, "ACTIVADAS",
-                          "A549+MRC-5 + Activated PBMC + CAR-T")
+                          "A549+MRC-5+Activated PBMC+CAR-T")
 
 # ── Guardar ───────────────────────────────────────────────────────────────────
-save_fig <- function(p, name, w = 110, h = 100) {
+save_fig <- function(p, name, w = 120, h = 100) {
   pdf_path <- file.path(fig_dir, paste0(name, ".pdf"))
   png_path <- file.path(fig_dir, paste0(name, ".png"))
   ggsave(pdf_path, p, width = w, height = h, units = "mm",

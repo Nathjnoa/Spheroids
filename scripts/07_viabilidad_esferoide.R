@@ -283,9 +283,7 @@ for (pvar in plot_vars) {
     message("  ", act$val, ": ", nrow(pd), " filas, grupos: ",
             paste(unique(pd$group), collapse = ", "))
 
-    title <- paste0("A549+MRC-5 \u00b1 ",
-                    act$label, " \u00b1 CAR-T\n",
-                    pvar$title)
+    title <- paste0("A549+MRC-5+", act$label, "+CAR-T")
 
     p     <- make_viab_plot(pd, title, pvar$y_lab)
     fname <- paste0("07_", pvar$id, "_", act$suf)

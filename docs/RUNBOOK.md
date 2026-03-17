@@ -70,9 +70,9 @@ Rscript scripts/03_stacked_bars.R
 #                          04_pbmc_live_act.pdf/.png
 Rscript scripts/04_pbmc_live_timecourse.R
 
-# Paso 5 — Curvas de 6 poblaciones inmunes específicas
+# Paso 5 — Curvas de 8 poblaciones inmunes específicas
 # Input:  data/processed/flow_clean.rds
-# Output: results/figures/05_*.pdf/.png (12 figuras)
+# Output: results/figures/05_*.pdf/.png (16 figuras)
 Rscript scripts/05_immune_pop_timecourse.R
 ```
 
@@ -157,6 +157,10 @@ Rscript scripts/08_car_expression.R
 | `05_macrophages_cd11b_act.pdf/.png` | Macrófagos CD11b⁺ % — activadas |
 | `05_macrophages_hladr_noact.pdf/.png` | Macrófagos HLA-DR⁺ % — no activadas |
 | `05_macrophages_hladr_act.pdf/.png` | Macrófagos HLA-DR⁺ % — activadas |
+| `05_cd4_hladr_pos_noact.pdf/.png` | CD4⁺/HLA-DR⁺ % — no activadas |
+| `05_cd4_hladr_pos_act.pdf/.png` | CD4⁺/HLA-DR⁺ % — activadas |
+| `05_cd8_hladr_pos_noact.pdf/.png` | CD8⁺/HLA-DR⁺ % — no activadas |
+| `05_cd8_hladr_pos_act.pdf/.png` | CD8⁺/HLA-DR⁺ % — activadas |
 
 ### Script 07
 
@@ -192,7 +196,9 @@ Rscript scripts/08_car_expression.R
 - [ ] Script 03 genera `03_stacked_bars.pdf` con 2 paneles y 3 facets cada uno
 - [ ] Facet 24h en script 03 tiene solo 1 barra (`− CAR-T`); facets 48h y 72h tienen 2 barras
 - [ ] Scripts 04 y 05 generan curvas con eje X triple (sph / PBMC time / CAR-T time)
-- [ ] Línea `+ CAR-T` en curvas temporales comparte punto t=24h con `− CAR-T`
+- [ ] Línea `Sph+PBMC+CAR-T` en curvas temporales comparte punto t=24h con `Sph+PBMC`
+- [ ] Script 05 genera 16 figuras (8 poblaciones × 2 activaciones)
+- [ ] Leyendas en scripts 04 y 05: `Sph+PBMC` (gris) y `Sph+PBMC+CAR-T` (color población)
 
 ### Pipeline de viabilidad
 
@@ -209,6 +215,7 @@ Rscript scripts/08_car_expression.R
 - [ ] Script 08 genera 10 figuras en `results/figures/`
 - [ ] `08_cd19_pct_*` tiene 4 líneas y 4 puntos de tiempo (24–96 h sph)
 - [ ] `08_cd3_count_*` tiene 2 líneas y **3 tiempos** (48, 72, 96 h sph); datos de CD3⁺ Vivas col O (ACTIVADOS) / col R (NO ACTIVADOS) de VIABILIDAD CONTEOS
+- [ ] `08_cd3_count_noact` tiene eje Y con límite superior fijo en 5000
 - [ ] `08_cart_pct_*`, `08_cd4_pct_*`, `08_cd8_pct_*` tienen 2 líneas y 2 tiempos (72, 96 h sph)
 
 ## Re-ejecución tras modificar archivos fuente

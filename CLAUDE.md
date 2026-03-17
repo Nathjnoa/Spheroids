@@ -222,16 +222,19 @@ CD8⁺/HLA-DR⁻ % = (cd8 − cd8_hladr) / cd8 × 100
 
 **`05_immune_pop_timecourse.R`**
 - Misma estructura que script 04
-- 6 poblaciones × 2 estados de activación = 12 figuras
+- 8 poblaciones × 2 estados de activación = 16 figuras
+- Leyendas: `Sph+PBMC` (gris) / `Sph+PBMC+CAR-T` (color de la población)
 
-| Variable | Fuente | Cálculo | Color |
-|----------|--------|---------|-------|
-| CD3⁺ count | CONTEOS | `cd3` | `#56B4E9` |
-| CD4⁺/HLA-DR⁻ % | CONTEOS | `(cd4 − cd4_hladr) / cd4 × 100` | `#0072B2` |
-| CD8⁺/HLA-DR⁻ % | CONTEOS | `(cd8 − cd8_hladr) / cd8 × 100` | `#D55E00` |
-| Macrophages count | CONTEOS | `macrophages` | `#CC79A7` |
-| Macrophages CD11b⁺ % | **PORCENTAJES** | columna directa | `#CC79A7` |
-| Macrophages HLA-DR⁺ % | **PORCENTAJES** | columna directa | `#882255` |
+| Variable | Fuente | Cálculo | Color | Y-axis label |
+|----------|--------|---------|-------|--------------|
+| CD3⁺ count | CONTEOS | `cd3` | `#56B4E9` | "Live CD3⁺ cells (count)" |
+| CD4⁺/HLA-DR⁻ % | CONTEOS | `(cd4 − cd4_hladr) / cd4 × 100` | `#0072B2` | "CD4⁺/HLA-DR⁻ (%)" |
+| CD8⁺/HLA-DR⁻ % | CONTEOS | `(cd8 − cd8_hladr) / cd8 × 100` | `#D55E00` | "CD8⁺/HLA-DR⁻ (%)" |
+| Macrophages count | CONTEOS | `macrophages` | `#D55E00` | "Live CD64⁺ macrophages (count)" |
+| Macrophages CD11b⁺ % | **PORCENTAJES** | columna directa | `#D55E00` | "Macrophages CD11b⁺ (%)" |
+| Macrophages HLA-DR⁺ % | **PORCENTAJES** | columna directa | `#882255` | "Macrophages HLA-DR⁺ (%)" |
+| CD4⁺/HLA-DR⁺ % | CONTEOS | `cd4_hladr / cd4 × 100` | `#0072B2` | "CD4⁺/HLA-DR⁺ (%)" |
+| CD8⁺/HLA-DR⁺ % | CONTEOS | `cd8_hladr / cd8 × 100` | `#D55E00` | "CD8⁺/HLA-DR⁺ (%)" |
 
 **`07_viabilidad_esferoide.R`**
 - Lee directamente desde `data/raw/` los 2 archivos CONTEOS VIABILIDAD (.xlsx)
@@ -259,6 +262,7 @@ CD8⁺/HLA-DR⁻ % = (cd8 − cd8_hladr) / cd8 × 100
   - % CAR-T, CD4⁺, CD8⁺ → EXPRESIÓN CAR PORCENTAJES cols 6, 7, 8
 - Parseo de formato mixto: "7.67%", "26,5 %", 0.145 (proporción×100), "4.66E-2"
 - Escala Y: 0–100% para porcentajes; adaptativa desde 0 para conteos
+- Excepción: `08_cd3_count_noact` tiene eje Y fijo con límite superior 5000
 - Títulos de figuras: `A549+MRC-5+{Activated/Non-activated PBMC}+CAR-T` (sin ± genérico)
 - Labels de eje Y: "Viable CD3⁺ cells (count)", "CAR expression (%)", "% CAR-T CD4⁺ cells", "% CAR-T CD8⁺ cells"
 - Salida: 10 figuras (5 variables × 2 activaciones), 120×100 mm
@@ -296,6 +300,10 @@ CD8⁺/HLA-DR⁻ % = (cd8 − cd8_hladr) / cd8 × 100
 | `05_macrophages_cd11b_act.pdf/.png` | Macrófagos CD11b⁺ % — activadas |
 | `05_macrophages_hladr_noact.pdf/.png` | Macrófagos HLA-DR⁺ % — no activadas |
 | `05_macrophages_hladr_act.pdf/.png` | Macrófagos HLA-DR⁺ % — activadas |
+| `05_cd4_hladr_pos_noact.pdf/.png` | CD4⁺/HLA-DR⁺ % — no activadas |
+| `05_cd4_hladr_pos_act.pdf/.png` | CD4⁺/HLA-DR⁺ % — activadas |
+| `05_cd8_hladr_pos_noact.pdf/.png` | CD8⁺/HLA-DR⁺ % — no activadas |
+| `05_cd8_hladr_pos_act.pdf/.png` | CD8⁺/HLA-DR⁺ % — activadas |
 
 ### Script 07
 

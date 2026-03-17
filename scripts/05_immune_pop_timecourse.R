@@ -44,13 +44,14 @@ message("Filas pct  (pbmc==SI, PORCENTAJES): ", nrow(df_pct))
 
 pop_specs <- list(
   list(
-    id        = "cd3_count",
-    label     = "CD3\u207A",
-    y_lab     = "CD3\u207A Count",
-    color     = "#56B4E9",
-    src_data  = "cnt",
-    use_break = FALSE,
-    calc      = function(d) d$cd3
+    id            = "cd3_count",
+    label         = "CD3\u207A",
+    y_lab         = "Live CD3\u207A cells (count)",
+    color         = "#56B4E9",
+    src_data      = "cnt",
+    use_break     = FALSE,
+    calc          = function(d) d$cd3,
+    legend_labels = c("- CAR-T" = "Sph+PBMC", "+ CAR-T" = "Sph+PBMC+CAR-T")
   ),
   list(
     id       = "cd4_hladr_neg",
@@ -69,29 +70,50 @@ pop_specs <- list(
     calc     = function(d) (d$cd8 - d$cd8_hladr) / d$cd8 * 100
   ),
   list(
-    id        = "macrophages_count",
-    label     = "Macrophages",
-    y_lab     = "Macrophages Count",
-    color     = "#CC79A7",
-    src_data  = "cnt",
-    use_break = TRUE,
-    calc      = function(d) d$macrophages
+    id           = "macrophages_count",
+    label        = "Macrophages",
+    y_lab        = "Live CD64\u207A macrophages (count)",
+    color        = "#D55E00",
+    src_data     = "cnt",
+    use_break    = TRUE,
+    calc         = function(d) d$macrophages,
+    legend_labels = c("- CAR-T" = "Sph+PBMC", "+ CAR-T" = "Sph+PBMC+CAR-T")
   ),
   list(
-    id       = "macrophages_cd11b",
-    label    = "Macrophages CD11b\u207A",
-    y_lab    = "Macrophages CD11b\u207A (%)",
-    color    = "#CC79A7",
-    src_data = "pct",   # porcentaje FlowJo directo (denominador correcto)
-    calc     = function(d) d$macrophages_cd11b
+    id            = "macrophages_cd11b",
+    label         = "Macrophages CD11b\u207A",
+    y_lab         = "Macrophages CD11b\u207A (%)",
+    color         = "#D55E00",
+    src_data      = "pct",   # porcentaje FlowJo directo (denominador correcto)
+    calc          = function(d) d$macrophages_cd11b,
+    legend_labels = c("- CAR-T" = "Sph+PBMC", "+ CAR-T" = "Sph+PBMC+CAR-T")
   ),
   list(
-    id       = "macrophages_hladr",
-    label    = "Macrophages HLA-DR\u207A",
-    y_lab    = "Macrophages HLA-DR\u207A (%)",
-    color    = "#882255",
-    src_data = "pct",   # porcentaje FlowJo directo (denominador correcto)
-    calc     = function(d) d$macrophages_hladr
+    id            = "macrophages_hladr",
+    label         = "Macrophages HLA-DR\u207A",
+    y_lab         = "Macrophages HLA-DR\u207A (%)",
+    color         = "#882255",
+    src_data      = "pct",   # porcentaje FlowJo directo (denominador correcto)
+    calc          = function(d) d$macrophages_hladr,
+    legend_labels = c("- CAR-T" = "Sph+PBMC", "+ CAR-T" = "Sph+PBMC+CAR-T")
+  ),
+  list(
+    id            = "cd4_hladr_pos",
+    label         = "CD4\u207A/HLA-DR\u207A",
+    y_lab         = "CD4\u207A/HLA-DR\u207A (%)",
+    color         = "#0072B2",
+    src_data      = "cnt",
+    calc          = function(d) d$cd4_hladr / d$cd4 * 100,
+    legend_labels = c("- CAR-T" = "Sph+PBMC", "+ CAR-T" = "Sph+PBMC+CAR-T")
+  ),
+  list(
+    id            = "cd8_hladr_pos",
+    label         = "CD8\u207A/HLA-DR\u207A",
+    y_lab         = "CD8\u207A/HLA-DR\u207A (%)",
+    color         = "#D55E00",
+    src_data      = "cnt",
+    calc          = function(d) d$cd8_hladr / d$cd8 * 100,
+    legend_labels = c("- CAR-T" = "Sph+PBMC", "+ CAR-T" = "Sph+PBMC+CAR-T")
   )
 )
 
@@ -155,9 +177,10 @@ make_pop_plot <- function(data, act_val, spec, title) {
   # Colores: gris para - CAR-T, color de la población para + CAR-T
   line_colors <- c("- CAR-T" = "#555555", "+ CAR-T" = spec$color)
   line_shapes <- c("- CAR-T" = 16,        "+ CAR-T" = 17)
+  leg_labels  <- if (!is.null(spec$legend_labels)) spec$legend_labels else waiver()
 
   # Y axis: formato según count o %
-  is_count <- grepl("Count", spec$y_lab)
+  is_count <- grepl("count", spec$y_lab, ignore.case = TRUE)
 
   # Conteos: escala compartida 0-7000, líneas cada 500
   cnt_all_brk   <- seq(0, 7000, 500)
@@ -172,8 +195,8 @@ make_pop_plot <- function(data, act_val, spec, title) {
                               color = line, group = line, shape = line)) +
     geom_line(linewidth = 0.9) +
     geom_point(size = 3.5) +
-    scale_color_manual(values = line_colors) +
-    scale_shape_manual(values = line_shapes) +
+    scale_color_manual(values = line_colors, labels = leg_labels) +
+    scale_shape_manual(values = line_shapes, labels = leg_labels) +
     scale_y_continuous(
       breaks = if (is_count) cnt_all_brk   else seq(0, 100, 20),
       labels = if (is_count) cnt_labels_fn else label_number(suffix = "%", accuracy = 1),
@@ -220,6 +243,12 @@ act_titles <- c(
   "NO_ACTIVADOS" = "A549+MRC-5 + PBMC + CAR-T",
   "ACTIVADAS"    = "A549+MRC-5 + Activated PBMC + CAR-T"
 )
+act_titles_short <- c(
+  "NO_ACTIVADOS" = "A549+MRC-5+Non-activated PBMC+CAR-T",
+  "ACTIVADAS"    = "A549+MRC-5+Activated PBMC+CAR-T"
+)
+specs_short_title <- c("macrophages_hladr", "macrophages_count", "macrophages_cd11b",
+                        "cd4_hladr_pos", "cd8_hladr_pos", "cd3_count")
 
 for (spec in pop_specs) {
   message("\n--- ", spec$label, " ---")
@@ -227,7 +256,11 @@ for (spec in pop_specs) {
 
   for (act in c("NO_ACTIVADOS", "ACTIVADAS")) {
     act_suffix <- if (act == "NO_ACTIVADOS") "noact" else "act"
-    title <- paste0(act_titles[[act]], "\n", spec$label)
+    title <- if (spec$id %in% specs_short_title) {
+      act_titles_short[[act]]
+    } else {
+      paste0(act_titles[[act]], "\n", spec$label)
+    }
     p <- make_pop_plot(pop_data, act, spec, title)
     fname <- paste0("05_", spec$id, "_", act_suffix)
     save_fig(p, fname)

@@ -273,7 +273,7 @@ prep_cd19 <- function(act_val) {
 }
 
 # ── Plot function ─────────────────────────────────────────────────────────────
-make_plot <- function(plot_data, title, y_lab, colors, shapes, y_pct) {
+make_plot <- function(plot_data, title, y_lab, colors, shapes, y_pct, y_max = NULL) {
   p <- ggplot(plot_data,
               aes(x = tiempo_f, y = value,
                   color = group, group = group, shape = group)) +
@@ -292,7 +292,7 @@ make_plot <- function(plot_data, title, y_lab, colors, shapes, y_pct) {
       expand = expansion(mult = c(0, 0.03))
     )
   } else {
-    y_ceil <- max(ceiling(max(plot_data$value, na.rm = TRUE) / 100) * 100, 500)
+    y_ceil <- if (!is.null(y_max)) y_max else max(ceiling(max(plot_data$value, na.rm = TRUE) / 100) * 100, 500)
     p + scale_y_continuous(
       breaks = pretty(c(0, y_ceil), n = 5),
       labels = label_comma(),
@@ -325,7 +325,7 @@ for (act in act_meta) {
   message("  rows: ", nrow(pd))
   print(pd)
   if (nrow(pd) > 0)
-    save_fig(make_plot(pd, paste0(bt, "Viable CD19\u207A cells"),
+    save_fig(make_plot(pd, paste0("A549+MRC-5+", act$label, "+CAR-T"),
                        "Viable CD19\u207A cells (%)", cols_4, shps_4, TRUE),
              paste0("08_cd19_pct_", act$suf))
 
@@ -335,7 +335,8 @@ for (act in act_meta) {
   message("  rows: ", nrow(pd))
   if (nrow(pd) > 0)
     save_fig(make_plot(pd, paste0("A549+MRC-5+", act$label, "+CAR-T"),
-                       "Viable CD3\u207A cells (count)", cols_2, shps_2, FALSE),
+                       "Viable CD3\u207A cells (count)", cols_2, shps_2, FALSE,
+                       y_max = if (act$suf == "noact") 5000 else NULL),
              paste0("08_cd3_count_", act$suf))
 
   # % CAR-T (2 time points)
