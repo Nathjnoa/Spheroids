@@ -114,6 +114,17 @@ pop_specs <- list(
     src_data      = "cnt",
     calc          = function(d) d$cd8_hladr / d$cd8 * 100,
     legend_labels = c("- CAR-T" = "Sph+PBMC", "+ CAR-T" = "Sph+PBMC+CAR-T")
+  ),
+  list(
+    id            = "nk_count",
+    label         = "NK Cells",
+    y_lab         = "Live NK cells (count)",
+    color         = "#E69F00",
+    src_data      = "cnt",
+    use_break     = FALSE,
+    y_max         = 1500,
+    calc          = function(d) d$nk,
+    legend_labels = c("- CAR-T" = "Sph+PBMC", "+ CAR-T" = "Sph+PBMC+CAR-T")
   )
 )
 
@@ -182,12 +193,18 @@ make_pop_plot <- function(data, act_val, spec, title) {
   # Y axis: formato según count o %
   is_count <- grepl("count", spec$y_lab, ignore.case = TRUE)
 
-  # Conteos: escala compartida 0-7000, líneas cada 500
-  cnt_all_brk   <- seq(0, 7000, 500)
-  # CD3: labels cada 1000 (sin break); Macrophages: labels en segmentos (con break)
-  use_break     <- isTRUE(spec$use_break)
-  cnt_label_brk <- if (use_break) c(0, 1000, 2000, 3500, 5000, 6500)
-                   else           seq(0, 7000, 1000)
+  # Conteos: escala 0-7000 por defecto; se puede ajustar con spec$y_max
+  cnt_max   <- if (!is.null(spec$y_max)) spec$y_max else 7000
+  use_break <- isTRUE(spec$use_break)
+  if (cnt_max == 7000) {
+    cnt_all_brk   <- seq(0, 7000, 500)
+    cnt_label_brk <- if (use_break) c(0, 1000, 2000, 3500, 5000, 6500)
+                     else           seq(0, 7000, 1000)
+  } else {
+    step          <- cnt_max / 6
+    cnt_all_brk   <- seq(0, cnt_max, step)
+    cnt_label_brk <- seq(0, cnt_max, cnt_max / 3)
+  }
   cnt_labels_fn <- function(x) ifelse(x %in% cnt_label_brk,
                                       format(x, big.mark = ",", scientific = FALSE), "")
 
@@ -200,7 +217,7 @@ make_pop_plot <- function(data, act_val, spec, title) {
     scale_y_continuous(
       breaks = if (is_count) cnt_all_brk   else seq(0, 100, 20),
       labels = if (is_count) cnt_labels_fn else label_number(suffix = "%", accuracy = 1),
-      limits = if (is_count) c(0, 7000)    else c(0, 100),
+      limits = if (is_count) c(0, cnt_max) else c(0, 100),
       expand = expansion(mult = c(0, 0.03))
     )
 
@@ -248,7 +265,7 @@ act_titles_short <- c(
   "ACTIVADAS"    = "A549+MRC-5+Activated PBMC+CAR-T"
 )
 specs_short_title <- c("macrophages_hladr", "macrophages_count", "macrophages_cd11b",
-                        "cd4_hladr_pos", "cd8_hladr_pos", "cd3_count")
+                        "cd4_hladr_pos", "cd8_hladr_pos", "cd3_count", "nk_count")
 
 for (spec in pop_specs) {
   message("\n--- ", spec$label, " ---")

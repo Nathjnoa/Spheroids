@@ -189,7 +189,7 @@ theme_flow <- theme_bw(base_size = 13) +
     plot.title         = element_text(size = 10, face = "bold", hjust = 0.5),
     legend.position    = "top",
     legend.title       = element_blank(),
-    legend.text        = element_text(size = 11),
+    legend.text        = element_text(size = 10),
     panel.grid.minor   = element_blank(),
     panel.grid.major.x = element_blank()
   )
@@ -209,14 +209,16 @@ group_shapes <- c(
 )
 
 # ── Función de plot ───────────────────────────────────────────────────────────
-make_viab_plot <- function(plot_data, title, y_lab) {
+make_viab_plot <- function(plot_data, title, y_lab, legend_nrow = 1) {
   ggplot(plot_data,
          aes(x = sph_time_f, y = value,
              color = group, group = group, shape = group)) +
     geom_line(linewidth = 0.9) +
     geom_point(size = 3.5) +
-    scale_color_manual(values = group_colors, drop = TRUE) +
-    scale_shape_manual(values = group_shapes, drop = TRUE) +
+    scale_color_manual(values = group_colors, drop = TRUE,
+                       guide = guide_legend(nrow = legend_nrow)) +
+    scale_shape_manual(values = group_shapes, drop = TRUE,
+                       guide = guide_legend(nrow = legend_nrow)) +
     scale_y_log10(
       breaks = c(1000, 2000, 3000, 5000, 10000, 20000, 30000),
       labels = label_comma(),
@@ -285,7 +287,8 @@ for (pvar in plot_vars) {
 
     title <- paste0("A549+MRC-5+", act$label, "+CAR-T")
 
-    p     <- make_viab_plot(pd, title, pvar$y_lab)
+    p     <- make_viab_plot(pd, title, pvar$y_lab,
+                             legend_nrow = if (!pvar$filter_pbmc_only) 2L else 1L)
     fname <- paste0("07_", pvar$id, "_", act$suf)
     save_fig(p, fname)
   }
