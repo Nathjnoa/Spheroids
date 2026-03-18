@@ -16,6 +16,16 @@ cd ~/bioinfo/projects/cart_spheroids_flow
 
 ## Archivos de entrada (`data/raw/`)
 
+### Morfología del esferoide (1 archivo XLSX — usado por script 09)
+
+```text
+Medidas esferoides.xlsx
+```
+
+16 filas × 8 columnas: `UNIDAD EXPERIMENTAL`, `TIEMPO`, `PBMC`, `ACTIVACIÓN`, `CAR-T`,
+`AREA` (µm²), `DIAMETRO` (µm), `CIRCULARIDAD` (0–1). n=1 por grupo × tiempo (sin réplicas).
+Grupos: Esferoide solo, Esferoide+CAR-T, Esferoide+PBMC (act/no act), Esferoide+PBMC+CAR-T (act/no act).
+
 ### Poblaciones inmunes (4 archivos XLS — usados por script 01)
 
 ```text
@@ -102,6 +112,20 @@ Rscript scripts/07_viabilidad_esferoide.R
 Rscript scripts/08_car_expression.R
 ```
 
+### Pipeline de morfología del esferoide (independiente)
+
+```bash
+# Paso 9 — Área, Diámetro y Circularidad del esferoide
+# Input:  data/raw/Medidas esferoides.xlsx
+# Output: results/figures/09_area_noact.pdf/.png
+#                          09_area_act.pdf/.png
+#                          09_diametro_noact.pdf/.png
+#                          09_diametro_act.pdf/.png
+#                          09_circularidad_noact.pdf/.png
+#                          09_circularidad_act.pdf/.png
+Rscript scripts/09_morphology_spheroids.R
+```
+
 ### Pipeline completo (orden recomendado)
 
 ```bash
@@ -111,6 +135,7 @@ Rscript scripts/04_pbmc_live_timecourse.R
 Rscript scripts/05_immune_pop_timecourse.R
 Rscript scripts/07_viabilidad_esferoide.R
 Rscript scripts/08_car_expression.R
+Rscript scripts/09_morphology_spheroids.R
 ```
 
 ## Scripts — estado actual
@@ -121,10 +146,11 @@ Rscript scripts/08_car_expression.R
 | `02_plots.R` | Deprecado | Reemplazado por 03, 04 y 05 |
 | `03_stacked_bars.R` | Activo | Barras apiladas composición inmune |
 | `04_pbmc_live_timecourse.R` | Activo | Curvas PBMCs vivas ±CAR-T |
-| `05_immune_pop_timecourse.R` | Activo | Curvas 6 poblaciones específicas |
+| `05_immune_pop_timecourse.R` | Activo | Curvas 9 poblaciones específicas (incluye NK cells) |
 | `06_heatmap.R` | Pendiente | Heatmap ComplexHeatmap todas las poblaciones |
-| `07_viabilidad_esferoide.R` | Activo | Curvas viabilidad esferoide y PBMC |
+| `07_viabilidad_esferoide.R` | Activo | Curvas viabilidad esferoide y PBMC; leyenda 2 filas en esf_vivas |
 | `08_car_expression.R` | Activo | CD19+ %, CD3+ count, % CAR-T, CD4⁺, CD8⁺ |
+| `09_morphology_spheroids.R` | Activo | Área, Diámetro y Circularidad del esferoide (n=1) |
 
 ## Figuras generadas
 
@@ -141,7 +167,7 @@ Rscript scripts/08_car_expression.R
 | `04_pbmc_live_noact.pdf/.png` | PBMCs vivas — no activadas |
 | `04_pbmc_live_act.pdf/.png` | PBMCs vivas — activadas |
 
-### Script 05 (12 figuras)
+### Script 05 (18 figuras)
 
 | Archivo | Descripción |
 | ------- | ----------- |
@@ -161,6 +187,11 @@ Rscript scripts/08_car_expression.R
 | `05_cd4_hladr_pos_act.pdf/.png` | CD4⁺/HLA-DR⁺ % — activadas |
 | `05_cd8_hladr_pos_noact.pdf/.png` | CD8⁺/HLA-DR⁺ % — no activadas |
 | `05_cd8_hladr_pos_act.pdf/.png` | CD8⁺/HLA-DR⁺ % — activadas |
+| `05_nk_count_noact.pdf/.png` | NK cells (count) — no activadas |
+| `05_nk_count_act.pdf/.png` | NK cells (count) — activadas |
+
+> **Nota script 05:** NK cells usan `y_max = 1500` (rango real 34–1094 conteos).
+> `make_pop_plot()` soporta `y_max` por spec; omitirlo usa la escala estándar 0–7000.
 
 ### Script 07
 
@@ -170,6 +201,9 @@ Rscript scripts/08_car_expression.R
 | `07_esf_vivas_act.pdf/.png` | Spheroid viable cells — activadas (4 líneas, 4 tiempos) |
 | `07_pbmc_vivas_noact.pdf/.png` | Viable PBMCs — no activadas (2 líneas, 3 tiempos) |
 | `07_pbmc_vivas_act.pdf/.png` | Viable PBMCs — activadas (2 líneas, 3 tiempos) |
+
+> **Nota script 07:** `esf_vivas` usa leyenda en 2 filas (`legend_nrow = 2`) por tener 4 grupos.
+> `pbmc_vivas` mantiene leyenda en 1 fila (`legend_nrow = 1`) con solo 2 grupos.
 
 ### Script 08 (10 figuras)
 
@@ -197,7 +231,7 @@ Rscript scripts/08_car_expression.R
 - [ ] Facet 24h en script 03 tiene solo 1 barra (`− CAR-T`); facets 48h y 72h tienen 2 barras
 - [ ] Scripts 04 y 05 generan curvas con eje X triple (sph / PBMC time / CAR-T time)
 - [ ] Línea `Sph+PBMC+CAR-T` en curvas temporales comparte punto t=24h con `Sph+PBMC`
-- [ ] Script 05 genera 16 figuras (8 poblaciones × 2 activaciones)
+- [ ] Script 05 genera 18 figuras (9 poblaciones × 2 activaciones, incluye NK cells)
 - [ ] Leyendas en scripts 04 y 05: `Sph+PBMC` (gris) y `Sph+PBMC+CAR-T` (color población)
 
 ### Pipeline de viabilidad
@@ -218,6 +252,20 @@ Rscript scripts/08_car_expression.R
 - [ ] `08_cd3_count_noact` tiene eje Y con límite superior fijo en 5000
 - [ ] `08_cart_pct_*`, `08_cd4_pct_*`, `08_cd8_pct_*` tienen 2 líneas y 2 tiempos (72, 96 h sph)
 
+### Script 09 (6 figuras)
+
+| Archivo | Descripción |
+| ------- | ----------- |
+| `09_area_noact.pdf/.png` | Spheroid area (µm²) — no activadas (4 líneas, 4 tiempos) |
+| `09_area_act.pdf/.png` | Spheroid area (µm²) — activadas (4 líneas, 4 tiempos) |
+| `09_diametro_noact.pdf/.png` | Spheroid diameter (µm) — no activadas (4 líneas, 4 tiempos) |
+| `09_diametro_act.pdf/.png` | Spheroid diameter (µm) — activadas (4 líneas, 4 tiempos) |
+| `09_circularidad_noact.pdf/.png` | Circularity (a.u.) — no activadas (4 líneas, 4 tiempos) |
+| `09_circularidad_act.pdf/.png` | Circularity (a.u.) — activadas (4 líneas, 4 tiempos) |
+
+> Área y Diámetro: eje Y en notación científica (escala lineal). Circularidad: escala lineal 0–1.
+> n=1 por grupo × tiempo; no se promedia entre donantes (dato único por condición).
+
 ## Re-ejecución tras modificar archivos fuente
 
 | Cambio | Acción |
@@ -226,6 +274,7 @@ Rscript scripts/08_car_expression.R
 | Cambios en XLSX de VIABILIDAD CONTEOS | Re-ejecutar script 07 |
 | Cambios en XLSX de VIABILIDAD PORCENTAJES | Re-ejecutar script 08 |
 | Cambios en XLSX de EXPRESIÓN CAR | Re-ejecutar script 08 |
+| Cambios en `Medidas esferoides.xlsx` | Re-ejecutar script 09 |
 
 ## Decisiones de análisis documentadas
 
