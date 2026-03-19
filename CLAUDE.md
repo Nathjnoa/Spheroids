@@ -197,9 +197,11 @@ CD8⁺/HLA-DR⁻ % = (cd8 − cd8_hladr) / cd8 × 100
 | `01_load_and_clean.R` | ✅ | `data/raw/*.xls` (4 POBLACIONES) | Carga, asigna nombres canónicos, exporta RDS+CSV |
 | `03_stacked_bars.R` | ✅ | `flow_clean.rds` | Barras apiladas de composición inmune |
 | `04_pbmc_live_timecourse.R` | ✅ | `flow_clean.rds` | Curvas temporales PBMCs vivas ±CAR-T |
-| `05_immune_pop_timecourse.R` | ✅ | `flow_clean.rds` | Curvas 6 poblaciones inmunes específicas |
+| `05_immune_pop_timecourse.R` | ✅ | `flow_clean.rds` | Curvas 9 poblaciones inmunes (incl. NK cells) |
 | `07_viabilidad_esferoide.R` | ✅ | `data/raw/*VIABILIDAD*.xlsx` | Curvas de viabilidad esferoide y PBMC |
 | `08_car_expression.R` | ✅ | `data/raw/*VIABILIDAD PORCENTAJES*.xlsx`, `data/raw/EXPRESIÓN CAR *.xlsx` | CD19+ %, CD3+ count, % CAR-T, CD4+, CD8+ |
+| `09_cd4_cd8_count_timecourse.R` | ✅ | `flow_clean.rds`, `data/raw/EXPRESIÓN CAR CONTEOS *.xlsx` | Conteos CD4⁺/CD8⁺ vivas: Sph+PBMC, Sph+PBMC+CAR-T, Sph+CAR-T |
+| `09_morphology_spheroids.R` | ✅ | `data/raw/Medidas esferoides.xlsx` | Área, Diámetro y Circularidad del esferoide (n=1) |
 
 ### Detalles de scripts activos
 
@@ -329,6 +331,15 @@ CD8⁺/HLA-DR⁻ % = (cd8 − cd8_hladr) / cd8 × 100
 | `08_cd8_pct_noact.pdf/.png` | % CAR-T CD8⁺ cells — Non-activated PBMC+CAR-T (2 líneas, 2 tiempos) |
 | `08_cd8_pct_act.pdf/.png` | % CAR-T CD8⁺ cells — Activated PBMC+CAR-T (2 líneas, 2 tiempos) |
 
+### Script 09_cd4_cd8_count_timecourse
+
+| Archivo | Descripción |
+|---------|-------------|
+| `09_cd4_count_noact.pdf/.png` | Live CD4⁺ cells (count) — no activadas (3 líneas, 3 tiempos) |
+| `09_cd4_count_act.pdf/.png` | Live CD4⁺ cells (count) — activadas (3 líneas, 3 tiempos) |
+| `09_cd8_count_noact.pdf/.png` | Live CD8⁺ cells (count) — no activadas (3 líneas, 3 tiempos) |
+| `09_cd8_count_act.pdf/.png` | Live CD8⁺ cells (count) — activadas (3 líneas, 3 tiempos) |
+
 ---
 
 ## Anomalías conocidas en los datos
@@ -352,13 +363,10 @@ CD8⁺/HLA-DR⁻ % = (cd8 − cd8_hladr) / cd8 × 100
 |--------|-------------|-------------------|
 | `06_heatmap.R` | Heatmap anotado (ComplexHeatmap) todas las poblaciones × muestras | `flow_clean.rds` ✅ |
 
-### Datos pendientes por integrar en `flow_clean.rds`
+### Notas de estado
 
-Los 4 archivos de **POBLACIONES** nuevos (ACTIVADAS y NO ACTIVADAS, con datos
-completos de CONTEOS y %) aún no están integrados en `flow_clean.rds`. El script 01
-actual lee solo los 4 archivos originales de los subdirectorios `24h/`, `48h/`, `72h/`.
-Requiere actualización de `01_load_and_clean.R` para leer los nuevos archivos
-directamente desde `data/raw/`.
+- `flow_clean.rds` lee los 4 archivos de POBLACIONES directamente desde `data/raw/` (40 filas). ✅
+- Los subdirectorios `24h/`, `48h/`, `72h/` están vacíos y pueden ignorarse.
 
 ---
 
@@ -388,10 +396,19 @@ Rscript scripts/07_viabilidad_esferoide.R
 
 # Pipeline de expresión CAR y CD19+ (independiente)
 Rscript scripts/08_car_expression.R
+
+# Conteos CD4+/CD8+ PBMC (requiere flow_clean.rds + EXPRESIÓN CAR CONTEOS)
+Rscript scripts/09_cd4_cd8_count_timecourse.R
+
+# Morfología del esferoide (independiente)
+Rscript scripts/09_morphology_spheroids.R
 ```
 
 ### Re-ejecución tras cambios en archivos fuente
 
-- **Cambios en XLS de POBLACIONES** → re-ejecutar pipeline completo desde script 01
+- **Cambios en XLS de POBLACIONES** → re-ejecutar pipeline completo desde script 01 (y luego 03, 04, 05, 09_cd4_cd8)
 - **Cambios en XLSX de VIABILIDAD CONTEOS** → re-ejecutar script 07
-- **Cambios en XLSX de VIABILIDAD PORCENTAJES o EXPRESIÓN CAR** → re-ejecutar script 08
+- **Cambios en XLSX de VIABILIDAD PORCENTAJES** → re-ejecutar script 08
+- **Cambios en XLSX de EXPRESIÓN CAR PORCENTAJES** → re-ejecutar script 08
+- **Cambios en XLSX de EXPRESIÓN CAR CONTEOS** → re-ejecutar scripts 08 y 09_cd4_cd8
+- **Cambios en `Medidas esferoides.xlsx`** → re-ejecutar script 09_morphology

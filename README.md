@@ -18,22 +18,29 @@ spheroid model, using non-activated and pre-activated PBMCs from two donors.
 
 | Script | Description | Status |
 |--------|-------------|--------|
-| `01_load_and_clean.R` | Load XLS files, assign canonical columns | Done |
-| `02_viabilidad_tiempos.R` | PBMC viability over time | Done |
-| `03_stacked_bars.R` | Stacked bar charts — immune composition | Done |
-| `04_cd8cd4_ratio.R` | CD8/CD4 ratio + HLA-DR activation index | Pending |
-| `05_delta_cart_effect.R` | Δ% relative CAR-T effect | Pending |
-| `06_heatmap.R` | Annotated heatmap (ComplexHeatmap) | Pending |
-| `07_viabilidad_esferoide.R` | Tumor spheroid viability | Awaiting data |
-| `08_car_expression.R` | CAR expression (% CAR+ in CD8) | Awaiting data |
+| `01_load_and_clean.R` | Load POBLACIONES XLS → `flow_clean.rds` (40 rows) | ✅ Done |
+| `03_stacked_bars.R` | Stacked bar charts — immune composition | ✅ Done |
+| `04_pbmc_live_timecourse.R` | Live PBMC count time-course ± CAR-T | ✅ Done |
+| `05_immune_pop_timecourse.R` | Time-course for 9 immune populations (incl. NK) | ✅ Done |
+| `06_heatmap.R` | Annotated heatmap (ComplexHeatmap) all populations | ⏳ Pending |
+| `07_viabilidad_esferoide.R` | Spheroid and PBMC viability curves (4 groups) | ✅ Done |
+| `08_car_expression.R` | CD19+ %, CD3+ count, % CAR-T, CAR-T CD4+/CD8+ % | ✅ Done |
+| `09_cd4_cd8_count_timecourse.R` | Live CD4+/CD8+ PBMC count (3 groups × 3 timepoints) | ✅ Done |
+| `09_morphology_spheroids.R` | Spheroid area, diameter, circularity (n=1) | ✅ Done |
 
 ## Quick start
 
 ```bash
 conda activate omics-R
 cd ~/bioinfo/projects/cart_spheroids_flow
-Rscript scripts/01_load_and_clean.R
+Rscript scripts/01_load_and_clean.R   # must run first
 Rscript scripts/03_stacked_bars.R
+Rscript scripts/04_pbmc_live_timecourse.R
+Rscript scripts/05_immune_pop_timecourse.R
+Rscript scripts/09_cd4_cd8_count_timecourse.R
+Rscript scripts/07_viabilidad_esferoide.R   # independent
+Rscript scripts/08_car_expression.R         # independent
+Rscript scripts/09_morphology_spheroids.R   # independent
 ```
 
 See `CLAUDE.md` for full biological context and `docs/RUNBOOK.md` for step-by-step instructions.

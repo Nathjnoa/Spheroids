@@ -115,7 +115,7 @@ Rscript scripts/08_car_expression.R
 ### Pipeline de morfología del esferoide (independiente)
 
 ```bash
-# Paso 9 — Área, Diámetro y Circularidad del esferoide
+# Paso 09_morphology — Área, Diámetro y Circularidad del esferoide
 # Input:  data/raw/Medidas esferoides.xlsx
 # Output: results/figures/09_area_noact.pdf/.png
 #                          09_area_act.pdf/.png
@@ -124,6 +124,21 @@ Rscript scripts/08_car_expression.R
 #                          09_circularidad_noact.pdf/.png
 #                          09_circularidad_act.pdf/.png
 Rscript scripts/09_morphology_spheroids.R
+```
+
+### Pipeline de conteos CD4⁺/CD8⁺ PBMC (independiente)
+
+```bash
+# Paso 09_cd4_cd8 — Conteos de células CD4+ y CD8+ vivas a lo largo del tiempo
+# Tres grupos: Sph+PBMC, Sph+PBMC+CAR-T, Sph+CAR-T
+# Input:  data/processed/flow_clean.rds (Sph+PBMC y Sph+PBMC+CAR-T)
+#         data/raw/EXPRESIÓN CAR CONTEOS ACTIVADAS.xlsx  (Sph+CAR-T)
+#         data/raw/EXPRESIÓN CAR CONTEOS NO ACTIVADAS.xlsx
+# Output: results/figures/09_cd4_count_noact.pdf/.png
+#                          09_cd4_count_act.pdf/.png
+#                          09_cd8_count_noact.pdf/.png
+#                          09_cd8_count_act.pdf/.png
+Rscript scripts/09_cd4_cd8_count_timecourse.R
 ```
 
 ### Pipeline completo (orden recomendado)
@@ -135,6 +150,7 @@ Rscript scripts/04_pbmc_live_timecourse.R
 Rscript scripts/05_immune_pop_timecourse.R
 Rscript scripts/07_viabilidad_esferoide.R
 Rscript scripts/08_car_expression.R
+Rscript scripts/09_cd4_cd8_count_timecourse.R
 Rscript scripts/09_morphology_spheroids.R
 ```
 
@@ -142,15 +158,16 @@ Rscript scripts/09_morphology_spheroids.R
 
 | Script | Estado | Descripción |
 | ------ | ------ | ----------- |
-| `01_load_and_clean.R` | Activo | POBLACIONES XLS → flow_clean.rds |
-| `02_plots.R` | Deprecado | Reemplazado por 03, 04 y 05 |
-| `03_stacked_bars.R` | Activo | Barras apiladas composición inmune |
-| `04_pbmc_live_timecourse.R` | Activo | Curvas PBMCs vivas ±CAR-T |
-| `05_immune_pop_timecourse.R` | Activo | Curvas 9 poblaciones específicas (incluye NK cells) |
-| `06_heatmap.R` | Pendiente | Heatmap ComplexHeatmap todas las poblaciones |
-| `07_viabilidad_esferoide.R` | Activo | Curvas viabilidad esferoide y PBMC; leyenda 2 filas en esf_vivas |
-| `08_car_expression.R` | Activo | CD19+ %, CD3+ count, % CAR-T, CD4⁺, CD8⁺ |
-| `09_morphology_spheroids.R` | Activo | Área, Diámetro y Circularidad del esferoide (n=1) |
+| `01_load_and_clean.R` | ✅ Activo | POBLACIONES XLS → flow_clean.rds |
+| `02_plots.R` | ⚠️ Deprecado | Reemplazado por 03, 04 y 05 |
+| `03_stacked_bars.R` | ✅ Activo | Barras apiladas composición inmune |
+| `04_pbmc_live_timecourse.R` | ✅ Activo | Curvas PBMCs vivas ±CAR-T |
+| `05_immune_pop_timecourse.R` | ✅ Activo | Curvas 9 poblaciones específicas (incluye NK cells) |
+| `06_heatmap.R` | ⏳ Pendiente | Heatmap ComplexHeatmap todas las poblaciones |
+| `07_viabilidad_esferoide.R` | ✅ Activo | Curvas viabilidad esferoide y PBMC; leyenda 2 filas en esf_vivas |
+| `08_car_expression.R` | ✅ Activo | CD19+ %, CD3+ count, % CAR-T, CD4⁺, CD8⁺ |
+| `09_cd4_cd8_count_timecourse.R` | ✅ Activo | Conteos CD4⁺/CD8⁺ PBMC: 3 grupos × 3 tiempos × 2 activaciones |
+| `09_morphology_spheroids.R` | ✅ Activo | Área, Diámetro y Circularidad del esferoide (n=1) |
 
 ## Figuras generadas
 
@@ -252,7 +269,24 @@ Rscript scripts/09_morphology_spheroids.R
 - [ ] `08_cd3_count_noact` tiene eje Y con límite superior fijo en 5000
 - [ ] `08_cart_pct_*`, `08_cd4_pct_*`, `08_cd8_pct_*` tienen 2 líneas y 2 tiempos (72, 96 h sph)
 
-### Script 09 (6 figuras)
+### Script 09_cd4_cd8_count_timecourse (4 figuras)
+
+| Archivo | Descripción |
+| ------- | ----------- |
+| `09_cd4_count_noact.pdf/.png` | Live CD4⁺ cells (count) — no activadas (3 líneas, 3 tiempos) |
+| `09_cd4_count_act.pdf/.png` | Live CD4⁺ cells (count) — activadas (3 líneas, 3 tiempos) |
+| `09_cd8_count_noact.pdf/.png` | Live CD8⁺ cells (count) — no activadas (3 líneas, 3 tiempos) |
+| `09_cd8_count_act.pdf/.png` | Live CD8⁺ cells (count) — activadas (3 líneas, 3 tiempos) |
+
+> **3 líneas:** `Sph+CAR-T` (naranja #E69F00, romb), `Sph+PBMC` (gris #555555, círculo),
+> `Sph+PBMC+CAR-T` (verde #009E73, triángulo).
+> **Fuentes de datos:** Sph+PBMC y Sph+PBMC+CAR-T → `cd4`/`cd8` de `flow_clean.rds` (CONTEOS);
+> Sph+CAR-T → columnas `Vivas/CAR-T CD4+` y `Vivas/CAR-T CD8+` de EXPRESIÓN CAR CONTEOS (PBMC=NO).
+> **Conversión de tiempo:** EXPRESIÓN CAR usa tiempo total; se resta 24 para alinear con PBMC time.
+> **Baselines compartidos en t=24h (PBMC time):** Sph+PBMC+CAR-T ← Sph+PBMC; Sph+CAR-T ← 0.
+> **Leyenda en 2 filas** (guide_legend nrow=2) para evitar corte a la derecha.
+
+### Script 09_morphology (6 figuras)
 
 | Archivo | Descripción |
 | ------- | ----------- |
@@ -273,8 +307,9 @@ Rscript scripts/09_morphology_spheroids.R
 | Cambios en XLS de POBLACIONES | Re-ejecutar pipeline completo desde script 01 |
 | Cambios en XLSX de VIABILIDAD CONTEOS | Re-ejecutar script 07 |
 | Cambios en XLSX de VIABILIDAD PORCENTAJES | Re-ejecutar script 08 |
-| Cambios en XLSX de EXPRESIÓN CAR | Re-ejecutar script 08 |
-| Cambios en `Medidas esferoides.xlsx` | Re-ejecutar script 09 |
+| Cambios en XLSX de EXPRESIÓN CAR PORCENTAJES | Re-ejecutar script 08 |
+| Cambios en XLSX de EXPRESIÓN CAR CONTEOS | Re-ejecutar scripts 08 y 09_cd4_cd8 |
+| Cambios en `Medidas esferoides.xlsx` | Re-ejecutar script 09_morphology |
 
 ## Decisiones de análisis documentadas
 
