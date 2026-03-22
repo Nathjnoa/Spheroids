@@ -227,7 +227,40 @@ grupo si se busca en el nombre completo. Por eso el script extrae **solo la
 
 - Grupo: presencia de "PBMC" y/o "CART" y/o "SOLO" en la descripción
 - Donante: "D1" o "D2" como palabras completas (para no confundir con "CD19")
-- Tiempo: primer número seguido de "H" (ej. "48H")
+- Tiempo: primer número seguido de "H" (ej. "48H") — ver nota de conversión abajo
+
+#### Conversión de tiempo de tratamiento a tiempo del esferoide
+
+El tiempo que aparece en el nombre FCS **no es el tiempo del esferoide** — es el
+tiempo transcurrido desde que se añadió el tratamiento de ese grupo. El script lo
+convierte a tiempo del esferoide sumando el offset correspondiente:
+
+| Grupo | Tiempo en FCS | Offset | Tiempo del esferoide |
+| ----- | ------------- | ------ | -------------------- |
+| Sph. only | tiempo esferoide | +0 h | igual |
+| Sph+PBMC | tiempo desde PBMC | +24 h | PBMCs añadidas a las 24h |
+| Sph+CAR-T | tiempo desde CAR-T | +48 h | CAR-T añadidas a las 48h |
+| Sph+PBMC+CAR-T | tiempo desde CAR-T | +48 h | CAR-T añadidas a las 48h |
+
+Ejemplo: un FCS con nombre `ESFEROIDE CART D1 24h` → grupo=Sph+CAR-T,
+tiempo_raw=24h → sph_time = 24+48 = **72h del esferoide**.
+
+#### Timepoints disponibles en el experimento MFI
+
+A diferencia de los scripts 07/12 (que tienen datos desde t=24h), **los archivos MFI
+no contienen mediciones a t=24h** del esferoide. El primer timepoint disponible es
+t=48h. Por ello las figuras MFI muestran **3 puntos** (48, 72, 96h), no 4:
+
+| Grupo | Timepoints en el gráfico |
+| ----- | ------------------------ |
+| Sph. only | 48h, 72h, 96h |
+| Sph+PBMC | 48h, 72h, 96h |
+| Sph+CAR-T | 72h*, 96h |
+| Sph+PBMC+CAR-T | 72h*, 96h |
+
+\* El punto de t=72h es compartido: Sph+CAR-T adopta el valor de Sph.only @72h, y
+Sph+PBMC+CAR-T adopta el valor de Sph+PBMC @72h (misma convención que scripts 07/12,
+pero desplazada un timepoint por la ausencia de datos a t=24h).
 
 ### Controles de célula única (single-cell controls)
 
