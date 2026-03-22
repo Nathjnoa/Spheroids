@@ -86,8 +86,13 @@ parse_mfi <- function(path, activation) {
         grepl("^ESFEROIDE?$", desc_upper)   ~ "ESFEROIDE_BASELINE",
         TRUE ~ NA_character_
       ),
-      # Extraer tiempo: \d+\s*H (pero no HLA ni el H de "PH" etc.)
-      sph_time = suppressWarnings(as.integer(
+      # Extraer tiempo bruto del nombre FCS
+      # IMPORTANTE: el tiempo en el nombre FCS es relativo al tratamiento, no al esferoide:
+      #   Sph. only       → tiempo_raw = tiempo del esferoide (offset 0)
+      #   Sph+PBMC        → tiempo_raw = tiempo desde adición de PBMC (offset +24)
+      #   Sph+CAR-T       → tiempo_raw = tiempo desde adición de CAR-T (offset +48)
+      #   Sph+PBMC+CAR-T  → tiempo_raw = tiempo desde adición de CAR-T (offset +48)
+      time_raw = suppressWarnings(as.integer(
         str_match(desc_upper, "(\\d+)\\s*H\\b")[, 2]
       )),
       # Detectar grupo desde desc (no desde el nombre completo)
@@ -95,12 +100,20 @@ parse_mfi <- function(path, activation) {
       has_cart = grepl("CART", desc_upper),
       has_solo = grepl("\\bSOLO\\b", desc_upper),
       group = case_when(
-        is_control         ~ NA_character_,
-        has_solo           ~ "Sph. only",
+        is_control          ~ NA_character_,
+        has_solo            ~ "Sph. only",
         has_pbmc & has_cart ~ "Sph+PBMC+CAR-T",
-        has_pbmc           ~ "Sph+PBMC",
+        has_pbmc            ~ "Sph+PBMC",
         has_cart            ~ "Sph+CAR-T",
-        TRUE               ~ NA_character_
+        TRUE                ~ NA_character_
+      ),
+      # Convertir a tiempo del esferoide sumando el offset según grupo
+      sph_time = case_when(
+        is_control                                       ~ time_raw,
+        group == "Sph. only"                             ~ time_raw,
+        group == "Sph+PBMC"                              ~ time_raw + 24L,
+        group %in% c("Sph+CAR-T", "Sph+PBMC+CAR-T")    ~ time_raw + 48L,
+        TRUE                                             ~ time_raw
       ),
       # Detectar donante: D1 o D2 como token aislado (no dentro de CD19)
       donor = case_when(
@@ -112,7 +125,7 @@ parse_mfi <- function(path, activation) {
         TRUE ~ NA_character_
       )
     ) |>
-    select(-desc, -desc_upper, -has_pbmc, -has_cart, -has_solo)
+    select(-desc, -desc_upper, -has_pbmc, -has_cart, -has_solo, -time_raw)
 
   out
 }
@@ -216,9 +229,8 @@ message("\nTabla guardada: ", tbl_path)
 #   Sph+PBMC+CAR-T @ t=48h ← Sph+PBMC @ t=48h
 #   Sph+CAR-T @ t=48h ← Sph.only @ t=48h
 
-time_levels <- c("24", "48", "72", "96")
-time_labels <- c("24 h sph.\n\u2014",
-                 "48 h sph\n24 h PBMC",
+time_levels <- c("48", "72", "96")
+time_labels <- c("48 h sph\n24 h PBMC",
                  "72 h sph\n48 h PBMC\n24 h CAR-T",
                  "96 h sph\n72 h PBMC\n48 h CAR-T")
 
@@ -229,34 +241,21 @@ prep_mfi_data <- function(df_src, act_val, y_col) {
     mutate(value = .data[[y_col]]) |>
     select(group, sph_time, value)
 
-  # Baseline compartido: Sph.only @ t=24h (si existe en esta activation)
-  baseline_24 <- src |>
-    filter(group == "Sph. only", sph_time == 24)
-
-  if (nrow(baseline_24) > 0) {
-    shared_24 <- lapply(
-      setdiff(grp_levels, "Sph. only"),
-      function(g) data.frame(group = g, sph_time = 24L,
-                              value = baseline_24$value[1],
-                              stringsAsFactors = FALSE)
-    ) |> bind_rows()
-    src <- bind_rows(src, shared_24)
-  }
-
-  # Punto compartido: Sph+PBMC+CAR-T @ t=48 ← Sph+PBMC @ t=48
+  # Punto compartido: Sph+PBMC+CAR-T @ t=72h ← Sph+PBMC @ t=72h
+  # (CAR-T se añaden a las 48h del esferoide; primer punto propio es t=72h)
   t0_pbmccart <- src |>
-    filter(group == "Sph+PBMC", sph_time == 48) |>
+    filter(group == "Sph+PBMC", sph_time == 72) |>
     mutate(group = "Sph+PBMC+CAR-T")
 
-  # Punto compartido: Sph+CAR-T @ t=48 ← Sph.only @ t=48
+  # Punto compartido: Sph+CAR-T @ t=72h ← Sph.only @ t=72h
   t0_cartsolo <- src |>
-    filter(group == "Sph. only", sph_time == 48) |>
+    filter(group == "Sph. only", sph_time == 72) |>
     mutate(group = "Sph+CAR-T")
 
   # Eliminar puntos propios que serán reemplazados
   src <- src |>
-    filter(!(group == "Sph+PBMC+CAR-T" & sph_time == 48),
-           !(group == "Sph+CAR-T"      & sph_time == 48))
+    filter(!(group == "Sph+PBMC+CAR-T" & sph_time == 72),
+           !(group == "Sph+CAR-T"      & sph_time == 72))
 
   bind_rows(src, t0_pbmccart, t0_cartsolo) |>
     filter(!is.na(value)) |>
