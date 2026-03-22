@@ -15,7 +15,6 @@ suppressPackageStartupMessages({
   library(dplyr)
   library(ggplot2)
   library(scales)
-  library(here)
 })
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
@@ -26,6 +25,9 @@ fig_dir     <- file.path(project_dir, "results", "figures")
 log_dir     <- file.path(project_dir, "logs")
 dir.create(fig_dir, showWarnings = FALSE, recursive = TRUE)
 dir.create(log_dir, showWarnings = FALSE, recursive = TRUE)
+
+source(file.path(project_dir, "scripts", "00_theme.R"))
+theme_flow <- theme_flow + theme(legend.text = element_text(size = 9))
 
 log_file <- file.path(log_dir, paste0("09_cd4_cd8_count_",
                         format(Sys.time(), "%Y%m%d_%H%M%S"), ".log"))
@@ -88,8 +90,8 @@ df_cart <- bind_rows(
 ) |>
   mutate(donor = NA_character_)
 
-message("Sph+CAR-T rows: ", nrow(df_cart))
-print(df_cart)
+message("Sph+CAR-T rows: ", nrow(df_cart), " | tiempos: ",
+        paste(sort(unique(df_cart$tiempo)), collapse = ", "))
 
 # ── 3. Combine and compute averages ───────────────────────────────────────────
 # Combine donor-level data (PBMC groups have donor; CAR-T group → average only 2 rows)
@@ -107,8 +109,8 @@ avg_all <- df_all |>
   ) |>
   filter(!is.na(cd4) | !is.na(cd8))
 
-message("Averaged rows: ", nrow(avg_all))
-print(avg_all)
+message("Averaged rows: ", nrow(avg_all), " | grupos: ",
+        paste(unique(avg_all$group), collapse = ", "))
 
 # ── 4. Add shared baselines at PBMC time 24h ─────────────────────────────────
 # Convention (same as scripts 05, 07, 08):
@@ -167,21 +169,7 @@ shps_3 <- c("Sph+CAR-T"       = 18L,
             "Sph+PBMC"        = 16L,
             "Sph+PBMC+CAR-T"  = 17L)
 
-# ── 7. Theme ──────────────────────────────────────────────────────────────────
-theme_flow <- theme_bw(base_size = 13) +
-  theme(
-    axis.text.x        = element_text(size = 10, hjust = 0.5, lineheight = 0.9),
-    axis.text.y        = element_text(size = 11),
-    axis.title         = element_text(size = 12),
-    plot.title         = element_text(size = 10, face = "bold", hjust = 0.5),
-    legend.position    = "top",
-    legend.title       = element_blank(),
-    legend.text        = element_text(size = 9),
-    panel.grid.minor   = element_blank(),
-    panel.grid.major.x = element_blank()
-  )
-
-# ── 8. Plot function ──────────────────────────────────────────────────────────
+# ── 7. Plot function ──────────────────────────────────────────────────────────
 make_plot <- function(plot_data, title, y_lab) {
   y_ceil <- max(ceiling(max(plot_data$value, na.rm = TRUE) / 100) * 100, 500)
   ggplot(plot_data,
@@ -203,16 +191,7 @@ make_plot <- function(plot_data, title, y_lab) {
     theme_flow
 }
 
-save_fig <- function(p, name, w = 120, h = 100) {
-  ggsave(file.path(fig_dir, paste0(name, ".pdf")), p,
-         width = w, height = h, units = "mm",
-         device = cairo_pdf, limitsize = FALSE)
-  ggsave(file.path(fig_dir, paste0(name, ".png")), p,
-         width = w, height = h, units = "mm", dpi = 300, limitsize = FALSE)
-  message("\u2713 Saved: ", name)
-}
-
-# ── 9. Generate figures ───────────────────────────────────────────────────────
+# ── 8. Generate figures ───────────────────────────────────────────────────────
 act_meta <- list(
   list(val = "NO_ACTIVADOS", suf = "noact", label = "Non-activated PBMC"),
   list(val = "ACTIVADAS",    suf = "act",   label = "Activated PBMC")
@@ -223,19 +202,17 @@ for (act in act_meta) {
 
   # CD4+ count
   pd <- prep_plot(avg_all, act$val, "cd4")
-  message("\n--- CD4+ count | ", act$val, " ---")
-  print(pd)
+  message("\n--- CD4+ count | ", act$val, " | ", nrow(pd), " filas ---")
   if (nrow(pd) > 0)
     save_fig(make_plot(pd, title_base, "Live CD4\u207A cells (count)"),
-             paste0("09_cd4_count_", act$suf))
+             paste0("09_cd4_count_", act$suf), 120, 100)
 
   # CD8+ count
   pd <- prep_plot(avg_all, act$val, "cd8")
-  message("\n--- CD8+ count | ", act$val, " ---")
-  print(pd)
+  message("\n--- CD8+ count | ", act$val, " | ", nrow(pd), " filas ---")
   if (nrow(pd) > 0)
     save_fig(make_plot(pd, title_base, "Live CD8\u207A cells (count)"),
-             paste0("09_cd8_count_", act$suf))
+             paste0("09_cd8_count_", act$suf), 120, 100)
 }
 
 message("\n=== Done: ", Sys.time(), " ===")

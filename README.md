@@ -26,7 +26,8 @@ spheroid model, using non-activated and pre-activated PBMCs from two donors.
 | `07_viabilidad_esferoide.R` | Spheroid and PBMC viability curves (4 groups) | ✅ Done |
 | `08_car_expression.R` | CD19+ %, CD3+ count, % CAR-T, CAR-T CD4+/CD8+ % | ✅ Done |
 | `09_cd4_cd8_count_timecourse.R` | Live CD4+/CD8+ PBMC count (3 groups × 3 timepoints) | ✅ Done |
-| `09_morphology_spheroids.R` | Spheroid area, diameter, circularity (n=1) | ✅ Done |
+| `10_morphology_spheroids.R` | Spheroid area, diameter, circularity (n=1) | ✅ Done |
+| `11_esf_cd19_estrategia1.R` | Spheroid CD3⁻ viable cells and CD19⁺ (Strategy 1) | ⏸️ Inactive |
 
 ## Quick start
 
@@ -40,7 +41,8 @@ Rscript scripts/05_immune_pop_timecourse.R
 Rscript scripts/09_cd4_cd8_count_timecourse.R
 Rscript scripts/07_viabilidad_esferoide.R   # independent
 Rscript scripts/08_car_expression.R         # independent
-Rscript scripts/09_morphology_spheroids.R   # independent
+Rscript scripts/10_morphology_spheroids.R   # independent
+Rscript scripts/11_esf_cd19_estrategia1.R  # independent
 ```
 
 See `CLAUDE.md` for full biological context and `docs/RUNBOOK.md` for step-by-step instructions.

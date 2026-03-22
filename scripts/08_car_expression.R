@@ -14,7 +14,6 @@ suppressPackageStartupMessages({
   library(dplyr)
   library(ggplot2)
   library(scales)
-  library(here)
 })
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
@@ -24,6 +23,13 @@ fig_dir     <- file.path(project_dir, "results", "figures")
 log_dir     <- file.path(project_dir, "logs")
 dir.create(fig_dir, showWarnings = FALSE, recursive = TRUE)
 dir.create(log_dir, showWarnings = FALSE, recursive = TRUE)
+
+source(file.path(project_dir, "scripts", "00_theme.R"))
+
+# Índices de columna por archivo (posición fija exportada por FlowJo)
+COL_CD19_ACT   <- 12L; COL_CD19_NOACT   <- 13L   # VIABILIDAD PORCENTAJES
+COL_CD3_ACT    <- 15L; COL_CD3_NOACT    <- 18L   # VIABILIDAD CONTEOS
+COL_CART_PCT   <- 6L;  COL_CD4_PCT      <- 7L;   COL_CD8_PCT <- 8L  # EXPRESIÓN CAR
 
 log_file <- file.path(log_dir, paste0("08_car_expression_",
                         format(Sys.time(), "%Y%m%d_%H%M%S"), ".log"))
@@ -52,11 +58,12 @@ parse_pct <- function(x) {
 read_viab_pct <- function(path, activation) {
   raw <- suppressMessages(read_excel(path, col_names = FALSE, na = c("", "-", "NA")))
   df  <- as.data.frame(raw[-1, ])
-  col_cd19 <- if (activation == "ACTIVADAS") 12L else 13L
+  col_cd19 <- if (activation == "ACTIVADAS") COL_CD19_ACT else COL_CD19_NOACT
   data.frame(
     pbmc       = toupper(trimws(as.character(df[[2]]))),
     donor      = as.character(df[[3]]),
     cart       = toupper(trimws(as.character(df[[4]]))),
+    # FlowJo XLS: celdas numéricas pueden llegar como texto — coerción esperada
     tiempo     = suppressWarnings(as.numeric(df[[5]])),
     activation = activation,
     cd19_pct   = parse_pct(df[[col_cd19]]),
@@ -93,6 +100,7 @@ read_cd3_viab <- function(path, activation, cd3_col) {
     pbmc       = toupper(trimws(as.character(df[[2]]))),
     donor      = as.character(df[[3]]),
     cart       = toupper(trimws(as.character(df[[4]]))),
+    # FlowJo XLS: celdas numéricas pueden llegar como texto — coerción esperada
     tiempo     = suppressWarnings(as.numeric(df[[5]])),
     activation = activation,
     cd3_count  = suppressWarnings(as.numeric(df[[cd3_col]])),
@@ -101,8 +109,8 @@ read_cd3_viab <- function(path, activation, cd3_col) {
 }
 
 df_cd3 <- bind_rows(
-  read_cd3_viab(file.path(raw_dir, "ACTIVADOS CONTEOS VIABILIDAD (PBMC+CART).xlsx"),          "ACTIVADAS",    15L),
-  read_cd3_viab(file.path(raw_dir, "NO ACTIVADOS CONTEOS VIABILIDAD-FLAG (PBMC+CART).xlsx"), "NO_ACTIVADOS", 18L)
+  read_cd3_viab(file.path(raw_dir, "ACTIVADOS CONTEOS VIABILIDAD (PBMC+CART).xlsx"),          "ACTIVADAS",    COL_CD3_ACT),
+  read_cd3_viab(file.path(raw_dir, "NO ACTIVADOS CONTEOS VIABILIDAD-FLAG (PBMC+CART).xlsx"), "NO_ACTIVADOS", COL_CD3_NOACT)
 ) |> mutate(
   group = case_when(
     pbmc == "NO" & cart == "SI" ~ "Sph+CAR-T",
@@ -125,11 +133,12 @@ read_car_pct <- function(path, activation) {
     pbmc       = toupper(trimws(as.character(df[[2]]))),
     donor      = as.character(df[[3]]),
     cart       = toupper(trimws(as.character(df[[4]]))),
+    # FlowJo XLS: celdas numéricas pueden llegar como texto — coerción esperada
     tiempo     = suppressWarnings(as.numeric(df[[5]])),
     activation = activation,
-    cart_pct   = parse_pct(df[[6]]),
-    cd4_pct    = parse_pct(df[[7]]),
-    cd8_pct    = parse_pct(df[[8]]),
+    cart_pct   = parse_pct(df[[COL_CART_PCT]]),
+    cd4_pct    = parse_pct(df[[COL_CD4_PCT]]),
+    cd8_pct    = parse_pct(df[[COL_CD8_PCT]]),
     stringsAsFactors = FALSE
   ) |> filter(!is.na(tiempo))
 }
@@ -171,20 +180,6 @@ shps_4 <- c("Sph. only" = 15L, "Sph+CAR-T" = 18L,
             "Sph+PBMC" = 16L, "Sph+PBMC+CAR-T" = 17L)
 cols_2 <- c("Sph+CAR-T" = "#E69F00", "Sph+PBMC+CAR-T" = "#009E73")
 shps_2 <- c("Sph+CAR-T" = 18L, "Sph+PBMC+CAR-T" = 17L)
-
-# ── Theme ─────────────────────────────────────────────────────────────────────
-theme_flow <- theme_bw(base_size = 13) +
-  theme(
-    axis.text.x        = element_text(size = 10, hjust = 0.5, lineheight = 0.9),
-    axis.text.y        = element_text(size = 11),
-    axis.title         = element_text(size = 12),
-    plot.title         = element_text(size = 10, face = "bold", hjust = 0.5),
-    legend.position    = "top",
-    legend.title       = element_blank(),
-    legend.text        = element_text(size = 11),
-    panel.grid.minor   = element_blank(),
-    panel.grid.major.x = element_blank()
-  )
 
 # ── Prep: average donors, factor time ────────────────────────────────────────
 prep_simple <- function(df, act_val, value_col, time_labs) {
@@ -302,14 +297,6 @@ make_plot <- function(plot_data, title, y_lab, colors, shapes, y_pct, y_max = NU
   }
 }
 
-save_fig <- function(p, name, w = 120, h = 100) {
-  ggsave(file.path(fig_dir, paste0(name, ".pdf")), p,
-         width = w, height = h, units = "mm", device = cairo_pdf, limitsize = FALSE)
-  ggsave(file.path(fig_dir, paste0(name, ".png")), p,
-         width = w, height = h, units = "mm", dpi = 300, limitsize = FALSE)
-  message("\u2713 Saved: ", name)
-}
-
 # ── Generate all figures ──────────────────────────────────────────────────────
 act_meta <- list(
   list(val = "NO_ACTIVADOS", suf = "noact", label = "Non-activated PBMC"),
@@ -317,8 +304,6 @@ act_meta <- list(
 )
 
 for (act in act_meta) {
-  bt <- paste0("A549+MRC-5 \u00b1 ", act$label, " \u00b1 CAR-T\n")
-
   # CD19+ % (4 time points, shared baselines)
   message("\n--- CD19+ % | ", act$val, " ---")
   pd <- prep_cd19(act$val)

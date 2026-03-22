@@ -21,6 +21,8 @@ log_dir     <- file.path(project_dir, "logs")
 dir.create(fig_dir, showWarnings = FALSE, recursive = TRUE)
 dir.create(log_dir, showWarnings = FALSE, recursive = TRUE)
 
+source(file.path(project_dir, "scripts", "00_theme.R"))
+
 log_file <- file.path(log_dir, paste0("04_pbmc_live_", format(Sys.time(), "%Y%m%d_%H%M%S"), ".log"))
 con <- file(log_file, open = "wt")
 sink(con, type = "message")
@@ -78,23 +80,8 @@ print(df_plot)
 
 # ── Colores y estéticas ────────────────────────────────────────────────────────
 line_colors <- c("- CAR-T" = "#555555", "+ CAR-T" = "#D55E00")
-line_types  <- c("- CAR-T" = "solid",   "+ CAR-T" = "solid")
 line_shapes <- c("- CAR-T" = 16,        "+ CAR-T" = 17)   # círculo vs triángulo
 leg_labels  <- c("- CAR-T" = "Sph+PBMC", "+ CAR-T" = "Sph+PBMC+CAR-T")
-
-# ── Tema ──────────────────────────────────────────────────────────────────────
-theme_flow <- theme_bw(base_size = 13) +
-  theme(
-    axis.text.x        = element_text(size = 10, hjust = 0.5, lineheight = 0.9),
-    axis.text.y        = element_text(size = 11),
-    axis.title         = element_text(size = 12),
-    plot.title         = element_text(size = 10, face = "bold", hjust = 0.5),
-    legend.position    = "top",
-    legend.title       = element_blank(),
-    legend.text        = element_text(size = 11),
-    panel.grid.minor   = element_blank(),
-    panel.grid.major.x = element_blank()
-  )
 
 # ── Función de plot ───────────────────────────────────────────────────────────
 make_line_plot <- function(data, act_val, title) {
@@ -102,12 +89,11 @@ make_line_plot <- function(data, act_val, title) {
 
   ggplot(plot_data, aes(x = tiempo_f, y = pbmcs_live,
                         color = line, group = line,
-                        shape = line, linetype = line)) +
+                        shape = line)) +
     geom_line(linewidth = 0.9) +
     geom_point(size = 3.5) +
     scale_color_manual(values = line_colors, labels = leg_labels) +
     scale_shape_manual(values = line_shapes, labels = leg_labels) +
-    scale_linetype_manual(values = line_types, labels = leg_labels) +
     scale_y_continuous(
       breaks = seq(0, 7000, 500),
       labels = function(x) ifelse(x %% 1000 == 0,
@@ -129,20 +115,8 @@ p_noact <- make_line_plot(df_plot, "NO_ACTIVADOS",
 p_act   <- make_line_plot(df_plot, "ACTIVADAS",
                           "A549+MRC-5+Activated PBMC+CAR-T")
 
-# ── Guardar ───────────────────────────────────────────────────────────────────
-save_fig <- function(p, name, w = 120, h = 100) {
-  pdf_path <- file.path(fig_dir, paste0(name, ".pdf"))
-  png_path <- file.path(fig_dir, paste0(name, ".png"))
-  ggsave(pdf_path, p, width = w, height = h, units = "mm",
-         device = cairo_pdf, limitsize = FALSE)
-  ggsave(png_path, p, width = w, height = h, units = "mm",
-         dpi = 300, device = "png", limitsize = FALSE)
-  message("\u2713 Guardado: ", basename(pdf_path),
-          sprintf("  (%.0f\u00d7%.0f mm)", w, h))
-}
-
-save_fig(p_noact, "04_pbmc_live_noact")
-save_fig(p_act,   "04_pbmc_live_act")
+save_fig(p_noact, "04_pbmc_live_noact", 120, 100)
+save_fig(p_act,   "04_pbmc_live_act",   120, 100)
 
 message("=== Finalizado: ", Sys.time(), " ===")
 sink(type = "message")

@@ -24,6 +24,11 @@ log_dir     <- file.path(project_dir, "logs")
 dir.create(fig_dir, showWarnings = FALSE, recursive = TRUE)
 dir.create(log_dir, showWarnings = FALSE, recursive = TRUE)
 
+source(file.path(project_dir, "scripts", "00_theme.R"))
+# Override para barras apiladas: leyenda a la derecha, texto más pequeño
+theme_flow <- theme_flow + theme(legend.position  = "right",
+                                 legend.text       = element_text(size = 10))
+
 log_file <- file.path(log_dir, paste0("03_stacked_bars_", format(Sys.time(), "%Y%m%d_%H%M%S"), ".log"))
 con <- file(log_file, open = "wt")
 sink(con, type = "message")
@@ -92,19 +97,15 @@ df_long <- df_avg |>
                                    "96 h esf\n72 h PBMC\n48 h CAR-T"))
   )
 
-# ── Tema base ─────────────────────────────────────────────────────────────────
-theme_flow <- theme_bw(base_size = 13) +
+# ── Tema local: agrega elementos específicos de barras apiladas ───────────────
+# (legend.position y legend.text sobreescritos via override en source(), arriba)
+theme_flow <- theme_flow +
   theme(
     strip.background   = element_rect(fill = "grey92", color = "grey55"),
     strip.text         = element_text(face = "bold", size = 7.5, lineheight = 1.05),
     axis.text.x        = element_text(size = 11, angle = 0, hjust = 0.5, lineheight = 0.9),
-    axis.text.y        = element_text(size = 11),
     axis.title.y       = element_text(size = 12),
-    legend.position    = "right",
-    legend.title       = element_text(size = 11, face = "bold"),
-    legend.text        = element_text(size = 10),
-    panel.grid.major.x = element_blank(),
-    panel.grid.minor   = element_blank()
+    legend.title       = element_text(size = 11, face = "bold")
   )
 
 # ── Función para construir cada panel ────────────────────────────────────────
@@ -153,18 +154,6 @@ p_act_pct   <- make_panel(df_long, "ACTIVADAS",    "PORCENTAJES",
 p_combined <- p_noact_pct + p_act_pct +
   plot_layout(guides = "collect") &
   theme(legend.position = "right")
-
-# ── Guardar figuras ───────────────────────────────────────────────────────────
-save_fig <- function(p, name, w, h) {
-  pdf_path <- file.path(fig_dir, paste0(name, ".pdf"))
-  png_path <- file.path(fig_dir, paste0(name, ".png"))
-  ggsave(pdf_path, p, width = w, height = h, units = "mm",
-         device = cairo_pdf, limitsize = FALSE)
-  ggsave(png_path, p, width = w, height = h, units = "mm",
-         dpi = 300, device = "png", limitsize = FALSE)
-  message("\u2713 Guardado: ", basename(pdf_path),
-          sprintf("  (%.0f\u00d7%.0f mm)", w, h))
-}
 
 # Multipanel combinado (250×110 mm — 1 fila × 2 columnas)
 save_fig(p_combined, "03_stacked_bars", w = 250, h = 110)

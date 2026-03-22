@@ -24,8 +24,6 @@ suppressPackageStartupMessages({
   library(dplyr)
   library(ggplot2)
   library(scales)
-  library(here)
-
 })
 
 # ── Rutas ─────────────────────────────────────────────────────────────────────
@@ -36,6 +34,9 @@ log_dir     <- file.path(project_dir, "logs")
 
 dir.create(fig_dir, showWarnings = FALSE, recursive = TRUE)
 dir.create(log_dir, showWarnings = FALSE, recursive = TRUE)
+
+source(file.path(project_dir, "scripts", "00_theme.R"))
+theme_flow <- theme_flow + theme(legend.text = element_text(size = 10))
 
 log_file <- file.path(
   log_dir,
@@ -56,6 +57,10 @@ message("=== 07_viabilidad_spheroide.R === ", Sys.time())
 # NO ACTIVADOS CONTEOS VIABILIDAD-FLAG (22 cols):
 #   col 11 = Esferoide/Vivas,  col 17 = PBMC's Vivas
 #
+# Índices de columna por archivo (posición fija exportada por FlowJo)
+COL_SPH_ACT   <- 10L; COL_PBMC_ACT   <- 14L   # ACTIVADAS
+COL_SPH_NOACT <- 11L; COL_PBMC_NOACT <- 17L   # NO ACTIVADAS
+
 read_viabilidad_cnt <- function(path, activation) {
   raw <- suppressMessages(
     read_excel(path, col_names = FALSE, na = c("", "-", "NA"))
@@ -63,14 +68,15 @@ read_viabilidad_cnt <- function(path, activation) {
   # Row 1 = header; data from row 2 onward
   df <- as.data.frame(raw[-1, ])
 
-  col_sph  <- if (activation == "ACTIVADAS") 10L else 11L
-  col_pbmc <- if (activation == "ACTIVADAS") 14L else 17L
+  col_sph  <- if (activation == "ACTIVADAS") COL_SPH_ACT   else COL_SPH_NOACT
+  col_pbmc <- if (activation == "ACTIVADAS") COL_PBMC_ACT  else COL_PBMC_NOACT
 
   data.frame(
     sample_label = as.character(df[[1]]),
     pbmc         = toupper(trimws(as.character(df[[2]]))),
     donor        = as.character(df[[3]]),
     cart         = toupper(trimws(as.character(df[[4]]))),
+    # FlowJo XLS: celdas numéricas pueden llegar como texto — coerción esperada
     tiempo       = suppressWarnings(as.numeric(df[[5]])),
     activation   = activation,
     sph_vivas    = suppressWarnings(as.numeric(df[[col_sph]])),
@@ -180,20 +186,6 @@ prep_plot_data <- function(df, act_val, y_col, include_t24 = TRUE) {
     )
 }
 
-# ── Tema (consistente con scripts 04 y 05) ────────────────────────────────────
-theme_flow <- theme_bw(base_size = 13) +
-  theme(
-    axis.text.x        = element_text(size = 10, hjust = 0.5, lineheight = 0.9),
-    axis.text.y        = element_text(size = 11),
-    axis.title         = element_text(size = 12),
-    plot.title         = element_text(size = 10, face = "bold", hjust = 0.5),
-    legend.position    = "top",
-    legend.title       = element_blank(),
-    legend.text        = element_text(size = 10),
-    panel.grid.minor   = element_blank(),
-    panel.grid.major.x = element_blank()
-  )
-
 # Colores y formas Okabe-Ito, consistentes con scripts anteriores
 group_colors <- c(
   "Sph. only"   = "#999999",
@@ -227,18 +219,6 @@ make_viab_plot <- function(plot_data, title, y_lab, legend_nrow = 1) {
     ) +
     labs(title = title, x = NULL, y = y_lab) +
     theme_flow
-}
-
-# ── Función de guardado ───────────────────────────────────────────────────────
-save_fig <- function(p, name, w = 130, h = 110) {
-  pdf_path <- file.path(fig_dir, paste0(name, ".pdf"))
-  png_path <- file.path(fig_dir, paste0(name, ".png"))
-  ggsave(pdf_path, p, width = w, height = h, units = "mm",
-         device = cairo_pdf, limitsize = FALSE)
-  ggsave(png_path, p, width = w, height = h, units = "mm",
-         dpi = 300, device = "png", limitsize = FALSE)
-  message("\u2713 Guardado: ", basename(pdf_path),
-          sprintf("  (%.0f\u00d7%.0f mm)", w, h))
 }
 
 # ── Generar figuras ───────────────────────────────────────────────────────────
@@ -290,7 +270,7 @@ for (pvar in plot_vars) {
     p     <- make_viab_plot(pd, title, pvar$y_lab,
                              legend_nrow = if (!pvar$filter_pbmc_only) 2L else 1L)
     fname <- paste0("07_", pvar$id, "_", act$suf)
-    save_fig(p, fname)
+    save_fig(p, fname, 130, 110)
   }
 }
 

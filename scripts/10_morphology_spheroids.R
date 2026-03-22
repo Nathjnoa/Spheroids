@@ -1,5 +1,5 @@
 #!/usr/bin/env Rscript
-# 09_morphology_spheroids.R
+# 10_morphology_spheroids.R
 # Curvas temporales de morfología del esferoide (Área, Diámetro, Circularidad)
 # para PBMC activadas y no activadas ± CAR-T.
 #
@@ -7,12 +7,12 @@
 # Convención de tiempos y puntos compartidos: igual que script 07.
 #
 # Figuras generadas (6):
-#   09_area_noact.pdf/.png        — Área, PBMC no activadas
-#   09_area_act.pdf/.png          — Área, PBMC activadas
-#   09_diametro_noact.pdf/.png    — Diámetro, PBMC no activadas
-#   09_diametro_act.pdf/.png      — Diámetro, PBMC activadas
-#   09_circularidad_noact.pdf/.png — Circularidad, PBMC no activadas
-#   09_circularidad_act.pdf/.png   — Circularidad, PBMC activadas
+#   10_area_noact.pdf/.png        — Área, PBMC no activadas
+#   10_area_act.pdf/.png          — Área, PBMC activadas
+#   10_diametro_noact.pdf/.png    — Diámetro, PBMC no activadas
+#   10_diametro_act.pdf/.png      — Diámetro, PBMC activadas
+#   10_circularidad_noact.pdf/.png — Circularidad, PBMC no activadas
+#   10_circularidad_act.pdf/.png   — Circularidad, PBMC activadas
 #
 # Ambiente: omics-R
 
@@ -21,7 +21,6 @@ suppressPackageStartupMessages({
   library(dplyr)
   library(ggplot2)
   library(scales)
-  library(here)
 })
 
 # ── Rutas ─────────────────────────────────────────────────────────────────────
@@ -33,12 +32,15 @@ log_dir     <- file.path(project_dir, "logs")
 dir.create(fig_dir, showWarnings = FALSE, recursive = TRUE)
 dir.create(log_dir, showWarnings = FALSE, recursive = TRUE)
 
+source(file.path(project_dir, "scripts", "00_theme.R"))
+theme_flow <- theme_flow + theme(legend.text = element_text(size = 10))
+
 log_file <- file.path(log_dir,
-  paste0("09_morphology_", format(Sys.time(), "%Y%m%d_%H%M%S"), ".log"))
+  paste0("10_morphology_", format(Sys.time(), "%Y%m%d_%H%M%S"), ".log"))
 con <- file(log_file, open = "wt")
 sink(con, type = "message")
 sink(con, type = "output", append = TRUE)
-message("=== 09_morphology_spheroids.R === ", Sys.time())
+message("=== 10_morphology_spheroids.R === ", Sys.time())
 
 # ── Leer y limpiar datos ──────────────────────────────────────────────────────
 raw <- read_excel(file.path(raw_dir, "Medidas esferoides.xlsx"),
@@ -144,20 +146,6 @@ group_shapes <- c(
   "Sph+PBMC+CAR-T" = 17L
 )
 
-# ── Tema (consistente con scripts anteriores) ─────────────────────────────────
-theme_flow <- theme_bw(base_size = 13) +
-  theme(
-    axis.text.x        = element_text(size = 10, hjust = 0.5, lineheight = 0.9),
-    axis.text.y        = element_text(size = 11),
-    axis.title         = element_text(size = 12),
-    plot.title         = element_text(size = 10, face = "bold", hjust = 0.5),
-    legend.position    = "top",
-    legend.title       = element_blank(),
-    legend.text        = element_text(size = 10),
-    panel.grid.minor   = element_blank(),
-    panel.grid.major.x = element_blank()
-  )
-
 # ── Función de plot ───────────────────────────────────────────────────────────
 make_morph_plot <- function(plot_data, title, y_col, y_lab, log_scale = TRUE) {
   p <- ggplot(plot_data,
@@ -187,18 +175,6 @@ make_morph_plot <- function(plot_data, title, y_col, y_lab, log_scale = TRUE) {
   }
 
   p
-}
-
-# ── Función de guardado ───────────────────────────────────────────────────────
-save_fig <- function(p, name, w = 130, h = 115) {
-  pdf_path <- file.path(fig_dir, paste0(name, ".pdf"))
-  png_path <- file.path(fig_dir, paste0(name, ".png"))
-  ggsave(pdf_path, p, width = w, height = h, units = "mm",
-         device = cairo_pdf, limitsize = FALSE)
-  ggsave(png_path, p, width = w, height = h, units = "mm",
-         dpi = 300, device = "png", limitsize = FALSE)
-  message("\u2713 Guardado: ", basename(pdf_path),
-          sprintf("  (%.0f\u00d7%.0f mm)", w, h))
 }
 
 # ── Generar las 6 figuras ─────────────────────────────────────────────────────
@@ -232,8 +208,8 @@ for (pvar in plot_vars) {
 
     title <- paste0("A549+MRC-5+", act$label, "+CAR-T")
     p     <- make_morph_plot(pd, title, pvar$col, pvar$y_lab, pvar$log_scale)
-    fname <- paste0("09_", pvar$id, "_", act$suf)
-    save_fig(p, fname)
+    fname <- paste0("10_", pvar$id, "_", act$suf)
+    save_fig(p, fname, 130, 115)
   }
 }
 

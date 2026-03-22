@@ -16,7 +16,7 @@ cd ~/bioinfo/projects/cart_spheroids_flow
 
 ## Archivos de entrada (`data/raw/`)
 
-### Morfología del esferoide (1 archivo XLSX — usado por script 09)
+### Morfología del esferoide (1 archivo XLSX — usado por script 10)
 
 ```text
 Medidas esferoides.xlsx
@@ -58,6 +58,17 @@ EXPRESIÓN CAR PORCENTAJES NO ACTIVADAS.xlsx
 ```
 
 TIEMPO en estos archivos: 72 y 96 h.
+
+### MFI de CD19 (2 archivos XLS — usados por script 13)
+
+```text
+MFI CD19+ ACTIVADAS.xls
+MFI CD19+ NO ACTIVADOS.xls
+```
+
+3 columnas: nombre FCS, MFI Zombie Red, MFI CD19.
+Metadata parseada del nombre FCS. Controles single-cell (UNS A549 CD19, WT, MRC5)
+solo en NO ACTIVADOS.
 
 ## Orden de ejecución
 
@@ -115,21 +126,21 @@ Rscript scripts/08_car_expression.R
 ### Pipeline de morfología del esferoide (independiente)
 
 ```bash
-# Paso 09_morphology — Área, Diámetro y Circularidad del esferoide
+# Paso 10 — Área, Diámetro y Circularidad del esferoide
 # Input:  data/raw/Medidas esferoides.xlsx
-# Output: results/figures/09_area_noact.pdf/.png
-#                          09_area_act.pdf/.png
-#                          09_diametro_noact.pdf/.png
-#                          09_diametro_act.pdf/.png
-#                          09_circularidad_noact.pdf/.png
-#                          09_circularidad_act.pdf/.png
-Rscript scripts/09_morphology_spheroids.R
+# Output: results/figures/10_area_noact.pdf/.png
+#                          10_area_act.pdf/.png
+#                          10_diametro_noact.pdf/.png
+#                          10_diametro_act.pdf/.png
+#                          10_circularidad_noact.pdf/.png
+#                          10_circularidad_act.pdf/.png
+Rscript scripts/10_morphology_spheroids.R
 ```
 
 ### Pipeline de conteos CD4⁺/CD8⁺ PBMC (independiente)
 
 ```bash
-# Paso 09_cd4_cd8 — Conteos de células CD4+ y CD8+ vivas a lo largo del tiempo
+# Paso 09 — Conteos de células CD4+ y CD8+ vivas a lo largo del tiempo
 # Tres grupos: Sph+PBMC, Sph+PBMC+CAR-T, Sph+CAR-T
 # Input:  data/processed/flow_clean.rds (Sph+PBMC y Sph+PBMC+CAR-T)
 #         data/raw/EXPRESIÓN CAR CONTEOS ACTIVADAS.xlsx  (Sph+CAR-T)
@@ -139,6 +150,35 @@ Rscript scripts/09_morphology_spheroids.R
 #                          09_cd8_count_noact.pdf/.png
 #                          09_cd8_count_act.pdf/.png
 Rscript scripts/09_cd4_cd8_count_timecourse.R
+```
+
+### Pipeline de viabilidad normalizada (independiente)
+
+```bash
+# Paso 12 — Viabilidad normalizada al Sph.only + citotoxicidad específica
+# Input:  data/raw/*VIABILIDAD CONTEOS*.xlsx (2 archivos, mismos que script 07)
+# Output: results/figures/12_viab_total_noact.pdf/.png
+#                          12_viab_total_act.pdf/.png
+#                          12_viab_cd19pos_noact.pdf/.png
+#                          12_viab_cd19pos_act.pdf/.png
+#                          12_viab_cd19neg_noact.pdf/.png
+#                          12_viab_cd19neg_act.pdf/.png
+#         results/tables/12_citotoxicidad_resumen.csv
+Rscript scripts/12_viabilidad_normalizada.R
+```
+
+### Pipeline de MFI CD19 (independiente)
+
+```bash
+# Paso 13 — MFI del transgén CD19 absoluta y normalizada
+# Input:  data/raw/MFI CD19+ ACTIVADAS.xls
+#         data/raw/MFI CD19+ NO ACTIVADOS.xls
+# Output: results/figures/13_mfi_cd19_noact.pdf/.png
+#                          13_mfi_cd19_act.pdf/.png
+#                          13_mfi_cd19_norm_noact.pdf/.png
+#                          13_mfi_cd19_norm_act.pdf/.png
+#         results/tables/13_mfi_cd19_resumen.csv
+Rscript scripts/13_mfi_cd19.R
 ```
 
 ### Pipeline completo (orden recomendado)
@@ -151,7 +191,9 @@ Rscript scripts/05_immune_pop_timecourse.R
 Rscript scripts/07_viabilidad_esferoide.R
 Rscript scripts/08_car_expression.R
 Rscript scripts/09_cd4_cd8_count_timecourse.R
-Rscript scripts/09_morphology_spheroids.R
+Rscript scripts/10_morphology_spheroids.R
+Rscript scripts/12_viabilidad_normalizada.R
+Rscript scripts/13_mfi_cd19.R
 ```
 
 ## Scripts — estado actual
@@ -167,7 +209,10 @@ Rscript scripts/09_morphology_spheroids.R
 | `07_viabilidad_esferoide.R` | ✅ Activo | Curvas viabilidad esferoide y PBMC; leyenda 2 filas en esf_vivas |
 | `08_car_expression.R` | ✅ Activo | CD19+ %, CD3+ count, % CAR-T, CD4⁺, CD8⁺ |
 | `09_cd4_cd8_count_timecourse.R` | ✅ Activo | Conteos CD4⁺/CD8⁺ PBMC: 3 grupos × 3 tiempos × 2 activaciones |
-| `09_morphology_spheroids.R` | ✅ Activo | Área, Diámetro y Circularidad del esferoide (n=1) |
+| `10_morphology_spheroids.R` | ✅ Activo | Área, Diámetro y Circularidad del esferoide (n=1) |
+| `11_esf_cd19_estrategia1.R` | ⏸️ Inactivo | Células esferoide CD3⁻ vivas y CD19⁺ (Estrategia 1 de gating) — temporalmente fuera del flujo |
+| `12_viabilidad_normalizada.R` | ✅ Activo | Viabilidad normalizada + citotoxicidad específica (total, CD19⁺, CD19⁻) + tabla resumen |
+| `13_mfi_cd19.R` | ✅ Activo | MFI CD19 absoluta y normalizada a UNS A549 CD19 + tabla resumen |
 
 ## Figuras generadas
 
@@ -269,7 +314,7 @@ Rscript scripts/09_morphology_spheroids.R
 - [ ] `08_cd3_count_noact` tiene eje Y con límite superior fijo en 5000
 - [ ] `08_cart_pct_*`, `08_cd4_pct_*`, `08_cd8_pct_*` tienen 2 líneas y 2 tiempos (72, 96 h sph)
 
-### Script 09_cd4_cd8_count_timecourse (4 figuras)
+### Script 09 — cd4_cd8_count_timecourse (4 figuras)
 
 | Archivo | Descripción |
 | ------- | ----------- |
@@ -286,30 +331,62 @@ Rscript scripts/09_morphology_spheroids.R
 > **Baselines compartidos en t=24h (PBMC time):** Sph+PBMC+CAR-T ← Sph+PBMC; Sph+CAR-T ← 0.
 > **Leyenda en 2 filas** (guide_legend nrow=2) para evitar corte a la derecha.
 
-### Script 09_morphology (6 figuras)
+### Script 10 — morphology (6 figuras)
 
 | Archivo | Descripción |
 | ------- | ----------- |
-| `09_area_noact.pdf/.png` | Spheroid area (µm²) — no activadas (4 líneas, 4 tiempos) |
-| `09_area_act.pdf/.png` | Spheroid area (µm²) — activadas (4 líneas, 4 tiempos) |
-| `09_diametro_noact.pdf/.png` | Spheroid diameter (µm) — no activadas (4 líneas, 4 tiempos) |
-| `09_diametro_act.pdf/.png` | Spheroid diameter (µm) — activadas (4 líneas, 4 tiempos) |
-| `09_circularidad_noact.pdf/.png` | Circularity (a.u.) — no activadas (4 líneas, 4 tiempos) |
-| `09_circularidad_act.pdf/.png` | Circularity (a.u.) — activadas (4 líneas, 4 tiempos) |
+| `10_area_noact.pdf/.png` | Spheroid area (µm²) — no activadas (4 líneas, 4 tiempos) |
+| `10_area_act.pdf/.png` | Spheroid area (µm²) — activadas (4 líneas, 4 tiempos) |
+| `10_diametro_noact.pdf/.png` | Spheroid diameter (µm) — no activadas (4 líneas, 4 tiempos) |
+| `10_diametro_act.pdf/.png` | Spheroid diameter (µm) — activadas (4 líneas, 4 tiempos) |
+| `10_circularidad_noact.pdf/.png` | Circularity (a.u.) — no activadas (4 líneas, 4 tiempos) |
+| `10_circularidad_act.pdf/.png` | Circularity (a.u.) — activadas (4 líneas, 4 tiempos) |
+
+### Script 11 — esf_cd19_estrategia1 (4 figuras)
+
+| Archivo | Descripción |
+| ------- | ----------- |
+| `11_esf_vivas_pct_act.pdf/.png` | % CD3⁻ Vivas del gate CD3 — activadas |
+| `11_esf_vivas_cnt_act.pdf/.png` | #Células CD3⁻ Vivas — activadas |
+| `11_cd19_pct_act.pdf/.png` | % CD19⁺ del gate Vivas — activadas |
+| `11_cd19_cnt_act.pdf/.png` | #Células CD19⁺ — activadas |
 
 > Área y Diámetro: eje Y en notación científica (escala lineal). Circularidad: escala lineal 0–1.
 > n=1 por grupo × tiempo; no se promedia entre donantes (dato único por condición).
+
+### Script 12 — viabilidad_normalizada (6 figuras + 1 tabla)
+
+| Archivo | Descripción |
+| ------- | ----------- |
+| `12_viab_total_noact.pdf/.png` | Viabilidad normalizada esferoide total — no activadas (3 líneas, ref 100%) |
+| `12_viab_total_act.pdf/.png` | Viabilidad normalizada esferoide total — activadas |
+| `12_viab_cd19pos_noact.pdf/.png` | Viabilidad normalizada CD19⁺ — no activadas |
+| `12_viab_cd19pos_act.pdf/.png` | Viabilidad normalizada CD19⁺ — activadas |
+| `12_viab_cd19neg_noact.pdf/.png` | Viabilidad normalizada CD19⁻ — no activadas |
+| `12_viab_cd19neg_act.pdf/.png` | Viabilidad normalizada CD19⁻ — activadas |
+| `12_citotoxicidad_resumen.csv` | Tabla: viabilidad y citotoxicidad por donante + mean (en `results/tables/`) |
+
+### Script 13 — mfi_cd19 (4 figuras + 1 tabla)
+
+| Archivo | Descripción |
+| ------- | ----------- |
+| `13_mfi_cd19_noact.pdf/.png` | MFI CD19 absoluta — no activadas (4 líneas, refs A549 CD19/WT) |
+| `13_mfi_cd19_act.pdf/.png` | MFI CD19 absoluta — activadas |
+| `13_mfi_cd19_norm_noact.pdf/.png` | MFI CD19 normalizada (% de A549 CD19) — no activadas |
+| `13_mfi_cd19_norm_act.pdf/.png` | MFI CD19 normalizada (% de A549 CD19) — activadas |
+| `13_mfi_cd19_resumen.csv` | Tabla: MFI absoluta y normalizada por donante + mean + controles (en `results/tables/`) |
 
 ## Re-ejecución tras modificar archivos fuente
 
 | Cambio | Acción |
 | ------ | ------ |
 | Cambios en XLS de POBLACIONES | Re-ejecutar pipeline completo desde script 01 |
-| Cambios en XLSX de VIABILIDAD CONTEOS | Re-ejecutar script 07 |
+| Cambios en XLSX de VIABILIDAD CONTEOS | Re-ejecutar scripts 07 y 12 |
 | Cambios en XLSX de VIABILIDAD PORCENTAJES | Re-ejecutar script 08 |
 | Cambios en XLSX de EXPRESIÓN CAR PORCENTAJES | Re-ejecutar script 08 |
 | Cambios en XLSX de EXPRESIÓN CAR CONTEOS | Re-ejecutar scripts 08 y 09_cd4_cd8 |
-| Cambios en `Medidas esferoides.xlsx` | Re-ejecutar script 09_morphology |
+| Cambios en `Medidas esferoides.xlsx` | Re-ejecutar script 10_morphology |
+| Cambios en XLS de MFI CD19+ | Re-ejecutar script 13 |
 
 ## Decisiones de análisis documentadas
 

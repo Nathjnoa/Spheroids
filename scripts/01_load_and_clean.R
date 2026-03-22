@@ -25,6 +25,10 @@ sink(con, type = "message")
 sink(con, type = "output", append = TRUE)
 message("=== 01_load_and_clean.R === ", Sys.time())
 
+# ── Constantes de estructura XLS ─────────────────────────────────────────────
+N_ROWS_PER_FILE <- 10L   # filas de datos por archivo (10 muestras, excl. header)
+POP_COL_RANGE   <- 6:27  # columnas de poblaciones en canonical_names
+
 # ── Nombres canónicos (por posición, cols 1–27) ───────────────────────────────
 # Col 1–5: metadatos | Col 6–27: poblaciones (orden fijo en todos los archivos)
 canonical_names <- c(
@@ -74,8 +78,8 @@ read_flow_xls <- function(path, activation, data_type) {
   df <- read_xls(
     path,
     col_names = FALSE,
-    skip      = 1,          # saltar fila de encabezados originales
-    n_max     = 10,         # excluir filas vacías al final
+    skip      = 1,                  # saltar fila de encabezados originales
+    n_max     = N_ROWS_PER_FILE,   # excluir filas vacías al final
     col_types = "text"
   )
 
@@ -91,7 +95,7 @@ read_flow_xls <- function(path, activation, data_type) {
   df$tiempo <- as.integer(df$tiempo)
 
   # Convertir columnas de población según tipo
-  pop_cols <- canonical_names[6:27]
+  pop_cols <- canonical_names[POP_COL_RANGE]
   if (data_type == "PORCENTAJES") {
     df[pop_cols] <- lapply(df[pop_cols], clean_pct)
   } else {
@@ -153,7 +157,7 @@ message("Filas esperadas: 40 (4 archivos × 10 muestras)")
 
 # Contar NAs en columnas de población (porcentajes)
 pct_df  <- filter(flow, data_type == "PORCENTAJES")
-pop_nas <- colSums(is.na(pct_df[, canonical_names[6:27]]))
+pop_nas <- colSums(is.na(pct_df[, canonical_names[POP_COL_RANGE]]))
 if (any(pop_nas > 0)) {
   message("\n⚠ NAs en columnas de porcentaje:")
   print(pop_nas[pop_nas > 0])
@@ -162,7 +166,7 @@ if (any(pop_nas > 0)) {
 }
 
 # Rango de porcentajes (debe ser 0-100 aproximadamente)
-pct_range <- sapply(pct_df[, canonical_names[6:27]], range, na.rm = TRUE)
+pct_range <- sapply(pct_df[, canonical_names[POP_COL_RANGE]], range, na.rm = TRUE)
 out_of_range <- colnames(pct_range)[pct_range[1,] < 0 | pct_range[2,] > 100]
 if (length(out_of_range) > 0) {
   message("⚠ Columnas fuera del rango 0-100: ", paste(out_of_range, collapse = ", "))

@@ -1,5 +1,5 @@
 #!/usr/bin/env Rscript
-# 09_esf_cd19_estrategia1.R
+# 11_esf_cd19_estrategia1.R
 # Curvas temporales de células del esferoide (CD3⁻) vivas y CD19⁺
 # a partir de la Estrategia 1 de gating (jerarquía exportada desde FlowJo):
 #   Singlets → ESFEROIDE → CD3⁻ → Muertas/Vivas → CD19⁺
@@ -8,10 +8,10 @@
 # CD19⁺       = fracción de A549 transducida con CD19 (diana del CAR anti-CD19)
 #
 # Figuras generadas (ACTIVADOS):
-#   09_esf_vivas_pct_act.pdf/.png  — % CD3⁻ Vivas (del gate CD3)
-#   09_esf_vivas_cnt_act.pdf/.png  — #Células CD3⁻ Vivas
-#   09_cd19_pct_act.pdf/.png       — % CD19⁺ (del gate Vivas)
-#   09_cd19_cnt_act.pdf/.png       — #Células CD19⁺
+#   11_esf_vivas_pct_act.pdf/.png  — % CD3⁻ Vivas (del gate CD3)
+#   11_esf_vivas_cnt_act.pdf/.png  — #Células CD3⁻ Vivas
+#   11_cd19_pct_act.pdf/.png       — % CD19⁺ (del gate Vivas)
+#   11_cd19_cnt_act.pdf/.png       — #Células CD19⁺
 #
 # Para agregar NO ACTIVADOS: descomentar las secciones marcadas
 # con "## NO_ACTIVADOS ##" y proveer el archivo correspondiente.
@@ -25,7 +25,6 @@ suppressPackageStartupMessages({
   library(stringr)
   library(ggplot2)
   library(scales)
-  library(here)
 })
 
 # ── Rutas ─────────────────────────────────────────────────────────────────────
@@ -36,18 +35,21 @@ log_dir     <- file.path(project_dir, "logs")
 dir.create(fig_dir, showWarnings = FALSE, recursive = TRUE)
 dir.create(log_dir, showWarnings = FALSE, recursive = TRUE)
 
+source(file.path(project_dir, "scripts", "00_theme.R"))
+theme_flow <- theme_flow + theme(legend.text = element_text(size = 10))
+
 log_file <- file.path(log_dir,
-  paste0("09_esf_cd19_estrategia1_", format(Sys.time(), "%Y%m%d_%H%M%S"), ".log"))
+  paste0("11_esf_cd19_estrategia1_", format(Sys.time(), "%Y%m%d_%H%M%S"), ".log"))
 con <- file(log_file, open = "wt")
 sink(con, type = "message")
 sink(con, type = "output", append = TRUE)
-message("=== 09_esf_cd19_estrategia1.R === ", Sys.time())
+message("=== 11_esf_cd19_estrategia1.R === ", Sys.time())
 
 # ── Archivos fuente ────────────────────────────────────────────────────────────
 f_act <- file.path(raw_dir,
   "VIABILIDAD ACTIVADOS ESTRATEGIA 1 TOTAL-CD3-ZOMBIE-CD19+.xlsx")
 
-## NO_ACTIVADOS ## descomentar cuando esté disponible el archivo equivalente:
+# PENDIENTE (datos no disponibles aún): descomentar cuando exista el archivo:
 # f_noact <- file.path(raw_dir,
 #   "VIABILIDAD NO ACTIVADOS ESTRATEGIA 1 TOTAL-CD3-ZOMBIE-CD19+.xlsx")
 
@@ -140,7 +142,7 @@ parse_estrategia1 <- function(path, activation) {
 # ── Leer datos ────────────────────────────────────────────────────────────────
 df_act <- parse_estrategia1(f_act, "ACTIVADAS")
 
-## NO_ACTIVADOS ## descomentar y reemplazar df_all cuando esté disponible:
+# PENDIENTE: descomentar y reemplazar df_all cuando esté disponible el archivo NO_ACTIVADOS:
 # df_noact <- parse_estrategia1(f_noact, "NO_ACTIVADOS")
 # df_all   <- bind_rows(df_act, df_noact)
 df_all <- df_act
@@ -203,20 +205,6 @@ prep_plot_data <- function(df, act_val, value_col) {
     arrange(group, tiempo)
 }
 
-# ── Tema y estética ────────────────────────────────────────────────────────────
-theme_flow <- theme_bw(base_size = 13) +
-  theme(
-    axis.text.x        = element_text(size = 10, hjust = 0.5),
-    axis.text.y        = element_text(size = 11),
-    axis.title         = element_text(size = 12),
-    plot.title         = element_text(size = 10, face = "bold", hjust = 0.5),
-    legend.position    = "top",
-    legend.title       = element_blank(),
-    legend.text        = element_text(size = 10),
-    panel.grid.minor   = element_blank(),
-    panel.grid.major.x = element_blank()
-  )
-
 group_colors <- c(
   "Sph. only"      = "#999999",
   "Sph+CAR-T"      = "#E69F00",
@@ -262,16 +250,6 @@ make_plot <- function(plot_data, title, y_lab, y_pct) {
   }
 }
 
-save_fig <- function(p, name, w = 130, h = 110) {
-  ggsave(file.path(fig_dir, paste0(name, ".pdf")), p,
-         width = w, height = h, units = "mm",
-         device = cairo_pdf, limitsize = FALSE)
-  ggsave(file.path(fig_dir, paste0(name, ".png")), p,
-         width = w, height = h, units = "mm",
-         dpi = 300, limitsize = FALSE)
-  message("\u2713 Guardado: ", name)
-}
-
 # ── Especificaciones de variables ──────────────────────────────────────────────
 plot_specs <- list(
   list(col   = "vivas_pct",
@@ -295,7 +273,7 @@ plot_specs <- list(
 # ── Estados de activación a graficar ──────────────────────────────────────────
 act_meta <- list(
   list(val = "ACTIVADAS", suf = "act", label = "Activated PBMC")
-  ## NO_ACTIVADOS ## descomentar cuando esté disponible:
+  # PENDIENTE: descomentar cuando el archivo NO_ACTIVADOS esté disponible:
   # , list(val = "NO_ACTIVADOS", suf = "noact", label = "Non-activated PBMC")
 )
 
@@ -315,7 +293,7 @@ for (act in act_meta) {
 
     title <- paste0("A549+MRC-5 CD19\u207A \u00b1 ", act$label, " \u00b1 CAR-T")
     p     <- make_plot(pd, title, pspec$y_lab, pspec$y_pct)
-    save_fig(p, paste0("09_", pspec$id, "_", act$suf))
+    save_fig(p, paste0("11_", pspec$id, "_", act$suf), 130, 110)
   }
 }
 

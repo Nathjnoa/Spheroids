@@ -132,6 +132,32 @@ Grupos: Esferoide solo Sph+PBMC+CAR-T (D1 y D2) y Esferoide + PBMC Sph+PBMC+CAR-
 > y PORCENTAJES. Homogeneizados el 2026-03-16 a tiempo total del experimento.
 > CONTEOS ACTIVADAS: 24→72, 48→96 (+48). Resto: 48→72, 72→96 (+24).
 
+#### Grupo 4: MFI de CD19 en Vivas CD19⁺
+
+Median Fluorescence Intensity (MFI) del transgén CD19 y viabilidad (Zombie Red)
+en el gate `Singlets/Esferoide/Vivas/Vivas CD19⁺`. Exportado desde FlowJo Table Editor.
+**Metadata se parsea del nombre FCS** (no hay columnas de metadata separadas).
+
+| Archivo | Formato | Activación | Filas útiles |
+|---------|---------|------------|--------------|
+| `MFI CD19+ ACTIVADAS.xls` | XLS | Activadas | 17 (excl. Mean/SD) |
+| `MFI CD19+ NO ACTIVADOS.xls` | XLS | No activadas | 21 (excl. Mean/SD) + 4 controles |
+
+Columnas (3):
+- Col 1: Nombre del archivo FCS (contiene metadata)
+- Col 2: `Singlets/Esferoide/Vivas | Median (Zombie Red-A :: VIAVILIDAD)` — MFI viabilidad (QC)
+- Col 3: `Singlets/Esferoide/Vivas/Vivas CD19+ | Median (Spark Violet 500-A :: CD19)` — MFI del transgén
+
+Controles single-cell (solo en NO ACTIVADOS):
+- `UNS A549 CD19` — referencia de expresión máxima del transgén (MFI ≈ 267,188)
+- `UNS A549 WT` — background autofluorescencia A549 (MFI ≈ 231,527)
+- `UNS MRC5` — background fibroblastos
+
+> **Parseo de nombre FCS:** El nombre tiene formato
+> `Inmunofenotipo-{date} {experiment}-{sample_desc}_Unmixed.fcs`.
+> La metadata se extrae de `{sample_desc}` (después del último `-`):
+> grupo (SOLO/PBMC/CART/PBMC+CART), donante (D1/D2), tiempo (`\d+H`).
+
 ### Datos procesados (`data/processed/`)
 
 | Archivo | Descripción | Script origen |
@@ -188,6 +214,17 @@ CD8⁺/HLA-DR⁻ % = (cd8 − cd8_hladr) / cd8 × 100
 
 **% CAR-T, CD4⁺, CD8⁺ (script 08)** → desde EXPRESIÓN CAR PORCENTAJES cols 6, 7, 8.
 
+**Viabilidad normalizada (script 12)** → desde CONTEOS VIABILIDAD:
+- Col 10/11 (ACT/NOACT): `Esferoide/Vivas` (total)
+- Col 11/13 (ACT/NOACT): `Vivas CD19⁺`
+- Col 12/12 (ACT/NOACT): `Vivas CD19⁻`
+- Normalización: `(Vivas_grupo / Vivas_sph_only) × 100` por timepoint
+
+**MFI CD19 (script 13)** → desde archivos MFI CD19+ (.xls):
+- Col 3: MFI Spark Violet 500 en gate `Vivas CD19⁺`
+- Metadata parseada del nombre FCS (grupo, donante, tiempo)
+- Referencia: `UNS A549 CD19` para normalización
+
 ---
 
 ## Scripts activos
@@ -201,7 +238,10 @@ CD8⁺/HLA-DR⁻ % = (cd8 − cd8_hladr) / cd8 × 100
 | `07_viabilidad_esferoide.R` | ✅ | `data/raw/*VIABILIDAD*.xlsx` | Curvas de viabilidad esferoide y PBMC |
 | `08_car_expression.R` | ✅ | `data/raw/*VIABILIDAD PORCENTAJES*.xlsx`, `data/raw/EXPRESIÓN CAR *.xlsx` | CD19+ %, CD3+ count, % CAR-T, CD4+, CD8+ |
 | `09_cd4_cd8_count_timecourse.R` | ✅ | `flow_clean.rds`, `data/raw/EXPRESIÓN CAR CONTEOS *.xlsx` | Conteos CD4⁺/CD8⁺ vivas: Sph+PBMC, Sph+PBMC+CAR-T, Sph+CAR-T |
-| `09_morphology_spheroids.R` | ✅ | `data/raw/Medidas esferoides.xlsx` | Área, Diámetro y Circularidad del esferoide (n=1) |
+| `10_morphology_spheroids.R` | ✅ | `data/raw/Medidas esferoides.xlsx` | Área, Diámetro y Circularidad del esferoide (n=1) |
+| `11_esf_cd19_estrategia1.R` | ⏸️ | `data/raw/*ESTRATEGIA1*.xlsx` | Células esferoide CD3⁻ vivas y CD19⁺ (Estrategia 1 de gating) — temporalmente inactivo |
+| `12_viabilidad_normalizada.R` | ✅ | `data/raw/*VIABILIDAD CONTEOS*.xlsx` | Viabilidad normalizada al Sph.only + citotoxicidad específica (total, CD19⁺, CD19⁻) |
+| `13_mfi_cd19.R` | ✅ | `data/raw/MFI CD19+ *.xls` | MFI del transgén CD19 absoluta y normalizada a UNS A549 CD19 |
 
 ### Detalles de scripts activos
 
@@ -268,6 +308,27 @@ CD8⁺/HLA-DR⁻ % = (cd8 − cd8_hladr) / cd8 × 100
 - Títulos de figuras: `A549+MRC-5+{Activated/Non-activated PBMC}+CAR-T` (sin ± genérico)
 - Labels de eje Y: "Viable CD3⁺ cells (count)", "CAR expression (%)", "% CAR-T CD4⁺ cells", "% CAR-T CD8⁺ cells"
 - Salida: 10 figuras (5 variables × 2 activaciones), 120×100 mm
+
+**`12_viabilidad_normalizada.R`**
+- Lee los 2 archivos CONTEOS VIABILIDAD (mismos que script 07)
+- Columnas adicionales: `Vivas CD19⁺` (ACT col 11, NOACT col 13), `Vivas CD19⁻` (col 12 ambos)
+- Normaliza cada grupo al Sph. only del mismo timepoint: `(Vivas/Vivas_sph_only) × 100`
+- 3 líneas: Sph+CAR-T, Sph+PBMC, Sph+PBMC+CAR-T (Sph. only = referencia 100%)
+- Línea horizontal punteada en y=100%
+- Baselines compartidos: todos @ t=24h = 100%; Sph+CAR-T @ t=48h = 100%
+- Tabla: `results/tables/12_citotoxicidad_resumen.csv` con valores por donante + mean
+- Salida: 6 figuras (3 variables × 2 activaciones), 130×110 mm
+
+**`13_mfi_cd19.R`**
+- Lee los 2 archivos MFI CD19+ (.xls) con metadata parseada del nombre FCS
+- Parseo: `sub(".*-", "", sub("_Unmixed\\.fcs$", "", name))` → extrae `{sample_desc}`
+- Grupo/donante/tiempo detectados por regex en la descripción
+- Controles (NO ACTIVADOS): UNS A549 CD19 (MFI=267188), UNS A549 WT (MFI=231527), UNS MRC5
+- MFI normalizada: `MFI_muestra / MFI_UNS_A549_CD19 × 100`
+- 4 líneas: Sph. only, Sph+CAR-T, Sph+PBMC, Sph+PBMC+CAR-T
+- Líneas de referencia: A549 CD19 (dashed), A549 WT (dotted) en plot absoluto; 100% en normalizado
+- Tabla: `results/tables/13_mfi_cd19_resumen.csv` con valores por donante + mean + controles
+- Salida: 4 figuras (2 métricas × 2 activaciones), 130×110 mm
 
 ---
 
@@ -340,6 +401,33 @@ CD8⁺/HLA-DR⁻ % = (cd8 − cd8_hladr) / cd8 × 100
 | `09_cd8_count_noact.pdf/.png` | Live CD8⁺ cells (count) — no activadas (3 líneas, 3 tiempos) |
 | `09_cd8_count_act.pdf/.png` | Live CD8⁺ cells (count) — activadas (3 líneas, 3 tiempos) |
 
+### Script 12
+
+| Archivo | Descripción |
+|---------|-------------|
+| `12_viab_total_noact.pdf/.png` | Viabilidad normalizada esferoide total — no activadas (3 líneas, 4 tiempos, ref 100%) |
+| `12_viab_total_act.pdf/.png` | Viabilidad normalizada esferoide total — activadas |
+| `12_viab_cd19pos_noact.pdf/.png` | Viabilidad normalizada CD19⁺ — no activadas |
+| `12_viab_cd19pos_act.pdf/.png` | Viabilidad normalizada CD19⁺ — activadas |
+| `12_viab_cd19neg_noact.pdf/.png` | Viabilidad normalizada CD19⁻ — no activadas |
+| `12_viab_cd19neg_act.pdf/.png` | Viabilidad normalizada CD19⁻ — activadas |
+
+### Script 13
+
+| Archivo | Descripción |
+|---------|-------------|
+| `13_mfi_cd19_noact.pdf/.png` | MFI CD19 absoluta — no activadas (4 líneas, refs UNS A549 CD19/WT) |
+| `13_mfi_cd19_act.pdf/.png` | MFI CD19 absoluta — activadas |
+| `13_mfi_cd19_norm_noact.pdf/.png` | MFI CD19 normalizada (% de A549 CD19) — no activadas |
+| `13_mfi_cd19_norm_act.pdf/.png` | MFI CD19 normalizada (% de A549 CD19) — activadas |
+
+### Tablas resumen (`results/tables/`)
+
+| Archivo | Descripción | Script |
+|---------|-------------|--------|
+| `12_citotoxicidad_resumen.csv` | Viabilidad normalizada y citotoxicidad específica por donante + mean | 12 |
+| `13_mfi_cd19_resumen.csv` | MFI CD19 absoluta y normalizada por donante + mean + controles | 13 |
+
 ---
 
 ## Anomalías conocidas en los datos
@@ -401,14 +489,22 @@ Rscript scripts/08_car_expression.R
 Rscript scripts/09_cd4_cd8_count_timecourse.R
 
 # Morfología del esferoide (independiente)
-Rscript scripts/09_morphology_spheroids.R
+Rscript scripts/10_morphology_spheroids.R
+Rscript scripts/11_esf_cd19_estrategia1.R
+
+# Viabilidad normalizada + citotoxicidad (independiente, lee CONTEOS VIABILIDAD)
+Rscript scripts/12_viabilidad_normalizada.R
+
+# MFI CD19 (independiente, lee MFI CD19+ .xls)
+Rscript scripts/13_mfi_cd19.R
 ```
 
 ### Re-ejecución tras cambios en archivos fuente
 
 - **Cambios en XLS de POBLACIONES** → re-ejecutar pipeline completo desde script 01 (y luego 03, 04, 05, 09_cd4_cd8)
-- **Cambios en XLSX de VIABILIDAD CONTEOS** → re-ejecutar script 07
+- **Cambios en XLSX de VIABILIDAD CONTEOS** → re-ejecutar scripts 07 y 12
 - **Cambios en XLSX de VIABILIDAD PORCENTAJES** → re-ejecutar script 08
 - **Cambios en XLSX de EXPRESIÓN CAR PORCENTAJES** → re-ejecutar script 08
 - **Cambios en XLSX de EXPRESIÓN CAR CONTEOS** → re-ejecutar scripts 08 y 09_cd4_cd8
-- **Cambios en `Medidas esferoides.xlsx`** → re-ejecutar script 09_morphology
+- **Cambios en `Medidas esferoides.xlsx`** → re-ejecutar script 10_morphology
+- **Cambios en XLS de MFI CD19+** → re-ejecutar script 13

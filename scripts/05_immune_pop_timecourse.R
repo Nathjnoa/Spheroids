@@ -21,6 +21,8 @@ log_dir     <- file.path(project_dir, "logs")
 dir.create(fig_dir, showWarnings = FALSE, recursive = TRUE)
 dir.create(log_dir, showWarnings = FALSE, recursive = TRUE)
 
+source(file.path(project_dir, "scripts", "00_theme.R"))
+
 log_file <- file.path(log_dir, paste0("05_immune_pop_", format(Sys.time(), "%Y%m%d_%H%M%S"), ".log"))
 con <- file(log_file, open = "wt")
 sink(con, type = "message")
@@ -167,19 +169,8 @@ build_pop_data <- function(spec) {
     )
 }
 
-# ── Tema ──────────────────────────────────────────────────────────────────────
-theme_flow <- theme_bw(base_size = 13) +
-  theme(
-    axis.text.x        = element_text(size = 10, hjust = 0.5, lineheight = 0.9),
-    axis.text.y        = element_text(size = 11),
-    axis.title         = element_text(size = 12),
-    plot.title         = element_text(size = 10, face = "bold", hjust = 0.5),
-    legend.position    = "top",
-    legend.title       = element_blank(),
-    legend.text        = element_text(size = 11),
-    panel.grid.minor   = element_blank(),
-    panel.grid.major.x = element_blank()
-  )
+# ── Constante para límite Y de conteos (valor default) ────────────────────────
+DEFAULT_CNT_MAX <- 7000L
 
 # ── Función de plot ───────────────────────────────────────────────────────────
 make_pop_plot <- function(data, act_val, spec, title) {
@@ -193,13 +184,13 @@ make_pop_plot <- function(data, act_val, spec, title) {
   # Y axis: formato según count o %
   is_count <- grepl("count", spec$y_lab, ignore.case = TRUE)
 
-  # Conteos: escala 0-7000 por defecto; se puede ajustar con spec$y_max
-  cnt_max   <- if (!is.null(spec$y_max)) spec$y_max else 7000
+  # Conteos: escala 0-DEFAULT_CNT_MAX por defecto; se puede ajustar con spec$y_max
+  cnt_max   <- if (!is.null(spec$y_max)) spec$y_max else DEFAULT_CNT_MAX
   use_break <- isTRUE(spec$use_break)
-  if (cnt_max == 7000) {
-    cnt_all_brk   <- seq(0, 7000, 500)
+  if (cnt_max == DEFAULT_CNT_MAX) {
+    cnt_all_brk   <- seq(0, DEFAULT_CNT_MAX, 500)
     cnt_label_brk <- if (use_break) c(0, 1000, 2000, 3500, 5000, 6500)
-                     else           seq(0, 7000, 1000)
+                     else           seq(0, DEFAULT_CNT_MAX, 1000)
   } else {
     step          <- cnt_max / 6
     cnt_all_brk   <- seq(0, cnt_max, step)
@@ -243,18 +234,6 @@ make_pop_plot <- function(data, act_val, spec, title) {
   p
 }
 
-# ── Función de guardado ───────────────────────────────────────────────────────
-save_fig <- function(p, name, w = 120, h = 100) {
-  pdf_path <- file.path(fig_dir, paste0(name, ".pdf"))
-  png_path <- file.path(fig_dir, paste0(name, ".png"))
-  ggsave(pdf_path, p, width = w, height = h, units = "mm",
-         device = cairo_pdf, limitsize = FALSE)
-  ggsave(png_path, p, width = w, height = h, units = "mm",
-         dpi = 300, device = "png", limitsize = FALSE)
-  message("\u2713 Guardado: ", basename(pdf_path),
-          sprintf("  (%.0f\u00d7%.0f mm)", w, h))
-}
-
 # ── Generar todas las figuras ─────────────────────────────────────────────────
 act_titles <- c(
   "NO_ACTIVADOS" = "A549+MRC-5 + PBMC + CAR-T",
@@ -280,7 +259,7 @@ for (spec in pop_specs) {
     }
     p <- make_pop_plot(pop_data, act, spec, title)
     fname <- paste0("05_", spec$id, "_", act_suffix)
-    save_fig(p, fname)
+    save_fig(p, fname, 120, 100)
   }
 }
 
