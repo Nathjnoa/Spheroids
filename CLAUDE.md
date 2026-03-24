@@ -70,14 +70,17 @@ y si ejercen actividad citotóxica sobre las células tumorales del esferoide.
 Datos de PBMCs en co-cultivo con el esferoide. Contienen la jerarquía completa
 de gating de poblaciones linfoides, mieloides y NK.
 
-| Archivo | Formato | Activación | Tipo |
-|---------|---------|------------|------|
-| `ACTIVADAS CONTEOS POBLACIONES (PBMC+CART).xls` | XLS | Activadas | Conteos |
-| `ACTIVADAS PORCENTAJES POBLACIONES (PBMC+CART).xls` | XLS | Activadas | % |
-| `NO ACTIVADOS CONTEOS POBLACIONES (PBMC+CART).xls` | XLS | No activadas | Conteos |
-| `NO ACTIVADOS PORCENTAJES POBLACIONES (PBMC+CART).xls` | XLS | No activadas | % |
+| Archivo | Formato | Activación | Tipo | Columnas |
+|---------|---------|------------|------|----------|
+| `ACTIVADAS CONTEOS POBLACIONES (PBMC+CART) (1).xls` | XLS | Activadas | Conteos | 28 |
+| `ACTIVADAS PORCENTAJES POBLACIONES (PBMC+CART).xls` | XLS | Activadas | % | 27 |
+| `NO ACTIVADOS CONTEOS POBLACIONES (PBMC+CART) (1).xls` | XLS | No activadas | Conteos | 28 |
+| `NO ACTIVADOS PORCENTAJES POBLACIONES (PBMC+CART).xls` | XLS | No activadas | % | 27 |
 
-Estructura: 11 filas × 27 columnas. TIEMPO: 24, 48, 72 h (tiempo total experimento
+Los archivos de CONTEOS tienen una columna adicional (col 28): `"Vivas CD19-CD16- (No definidas)"`,
+mapeada a `cd14neg_cd16neg`. Los PORCENTAJES siguen con 27 columnas.
+
+Estructura: 11 filas × 27/28 columnas. TIEMPO: 24, 48, 72 h (tiempo total experimento
 desde adición de PBMCs; equivalente a PBMC time = TIEMPO − 24 h).
 
 **Nota:** Estos 4 archivos se cargan mediante `01_load_and_clean.R` y se integran

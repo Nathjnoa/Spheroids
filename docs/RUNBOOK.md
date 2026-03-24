@@ -29,11 +29,15 @@ Grupos: Esferoide solo, Esferoide+CAR-T, Esferoide+PBMC (act/no act), Esferoide+
 ### Poblaciones inmunes (4 archivos XLS — usados por script 01)
 
 ```text
-ACTIVADAS CONTEOS POBLACIONES (PBMC+CART).xls
-ACTIVADAS PORCENTAJES POBLACIONES (PBMC+CART).xls
-NO ACTIVADOS CONTEOS POBLACIONES (PBMC+CART).xls
-NO ACTIVADOS PORCENTAJES POBLACIONES (PBMC+CART).xls
+ACTIVADAS CONTEOS POBLACIONES (PBMC+CART) (1).xls       ← 28 columnas (incluye col 28: CD14⁻/CD16⁻)
+ACTIVADAS PORCENTAJES POBLACIONES (PBMC+CART).xls        ← 27 columnas
+NO ACTIVADOS CONTEOS POBLACIONES (PBMC+CART) (1).xls    ← 28 columnas (incluye col 28: CD14⁻/CD16⁻)
+NO ACTIVADOS PORCENTAJES POBLACIONES (PBMC+CART).xls     ← 27 columnas
 ```
+
+> Los archivos de CONTEOS tienen una columna adicional (col 28): `"Vivas CD19-CD16- (No definidas)"`,
+> mapeada a `cd14neg_cd16neg` en el esquema canónico. Corresponde a células innatas no definidas
+> ("Other") que se incluyen en las barras apiladas para completar el 100%.
 
 ### Viabilidad tumoral y PBMC (4 archivos XLSX — usados por script 07)
 
@@ -289,7 +293,8 @@ Rscript scripts/13_mfi_cd19.R
 - [ ] Ambiente `omics-R` activado
 - [ ] 4 archivos XLS de POBLACIONES presentes en `data/raw/`
 - [ ] Script 01 genera `flow_clean.rds` sin errores (40 filas)
-- [ ] Script 03 genera `03_stacked_bars.pdf` con 2 paneles y 3 facets cada uno
+- [ ] Script 03 genera `03_stacked_bars.pdf` con 2 paneles y 3 facets cada uno, **6 poblaciones** (incluye "Other")
+- [ ] Cada barra suma exactamente 100% (normalización post-promedio)
 - [ ] Facet 24h en script 03 tiene solo 1 barra (`− CAR-T`); facets 48h y 72h tienen 2 barras
 - [ ] Scripts 04 y 05 generan curvas con eje X triple (sph / PBMC time / CAR-T time)
 - [ ] Línea `Sph+PBMC+CAR-T` en curvas temporales comparte punto t=24h con `Sph+PBMC`
@@ -391,6 +396,7 @@ Rscript scripts/13_mfi_cd19.R
 ## Decisiones de análisis documentadas
 
 - **Denominador de %**: siempre `pbmcs_live` (conteos). No usar directamente los % del XLS.
+- **Normalización a 100% en barras apiladas (script 03)**: tras calcular `(conteo/pbmcs_live)×100`, cada fila se divide por la suma de las 6 poblaciones para que la barra sume exactamente 100%. "Other" (CD14⁻/CD16⁻) absorbe la fracción no asignada a las otras categorías.
 - **Macrófagos CD11b/HLA-DR %**: usar archivo de PORCENTAJES (no recalcular desde CONTEOS).
 - **Promedio de donantes**: media aritmética D1 y D2 (n=2, solo descriptivo).
 - **Baseline esferoide**: punto t=24h de `Esf. solo` es compartido por todas las líneas en curvas de `esf_vivas`.

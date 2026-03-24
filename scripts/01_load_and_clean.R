@@ -26,11 +26,11 @@ sink(con, type = "output", append = TRUE)
 message("=== 01_load_and_clean.R === ", Sys.time())
 
 # ── Constantes de estructura XLS ─────────────────────────────────────────────
-N_ROWS_PER_FILE <- 10L   # filas de datos por archivo (10 muestras, excl. header)
-POP_COL_RANGE   <- 6:27  # columnas de poblaciones en canonical_names
+N_ROWS_PER_FILE      <- 10L   # filas de datos por archivo (10 muestras, excl. header)
+POP_COL_RANGE        <- 6:27  # columnas de poblaciones — archivos de 27 cols (PORCENTAJES)
+POP_COL_RANGE_CONTEOS <- 6:28 # columnas de poblaciones — archivos de 28 cols (CONTEOS)
 
-# ── Nombres canónicos (por posición, cols 1–27) ───────────────────────────────
-# Col 1–5: metadatos | Col 6–27: poblaciones (orden fijo en todos los archivos)
+# ── Nombres canónicos — PORCENTAJES (27 cols) ─────────────────────────────────
 canonical_names <- c(
   "sample_label",    # 1  — nombre de la muestra (fila)
   "pbmc",            # 2  — PBMC (SI/NO)
@@ -61,6 +61,12 @@ canonical_names <- c(
   "b_cells"          # 27 — Linfocitos B
 )
 
+# ── Nombres canónicos — CONTEOS (28 cols, añade col 28) ──────────────────────
+canonical_names_conteos <- c(
+  canonical_names,
+  "cd14neg_cd16neg"  # 28 — Vivas CD19-/CD16- (No definidas / "Other")
+)
+
 # ── Función: limpiar columna de porcentaje ────────────────────────────────────
 clean_pct <- function(x) {
   x <- as.character(x)
@@ -83,19 +89,23 @@ read_flow_xls <- function(path, activation, data_type) {
     col_types = "text"
   )
 
-  # Verificar que tiene 27 columnas
-  if (ncol(df) != 27) {
-    stop("Se esperaban 27 columnas en ", basename(path), " pero hay ", ncol(df))
+  # Seleccionar nombres canónicos según número de columnas
+  expected_cols <- if (data_type == "CONTEOS") 28L else 27L
+  if (ncol(df) != expected_cols) {
+    stop("Se esperaban ", expected_cols, " columnas en ", basename(path),
+         " pero hay ", ncol(df))
   }
 
-  colnames(df) <- canonical_names
+  cnames   <- if (data_type == "CONTEOS") canonical_names_conteos else canonical_names
+  pop_range <- if (data_type == "CONTEOS") POP_COL_RANGE_CONTEOS  else POP_COL_RANGE
+  colnames(df) <- cnames
 
   # Convertir metadatos numéricos
   df$donor  <- as.integer(df$donor)
   df$tiempo <- as.integer(df$tiempo)
 
   # Convertir columnas de población según tipo
-  pop_cols <- canonical_names[POP_COL_RANGE]
+  pop_cols <- cnames[pop_range]
   if (data_type == "PORCENTAJES") {
     df[pop_cols] <- lapply(df[pop_cols], clean_pct)
   } else {
@@ -112,7 +122,7 @@ read_flow_xls <- function(path, activation, data_type) {
 # ── Leer los 4 archivos ───────────────────────────────────────────────────────
 files <- list(
   list(
-    path       = file.path(raw_dir, "ACTIVADAS CONTEOS POBLACIONES (PBMC+CART).xls"),
+    path       = file.path(raw_dir, "ACTIVADAS CONTEOS POBLACIONES (PBMC+CART) (1).xls"),
     activation = "ACTIVADAS",
     data_type  = "CONTEOS"
   ),
@@ -122,7 +132,7 @@ files <- list(
     data_type  = "PORCENTAJES"
   ),
   list(
-    path       = file.path(raw_dir, "NO ACTIVADOS CONTEOS POBLACIONES (PBMC+CART).xls"),
+    path       = file.path(raw_dir, "NO ACTIVADOS CONTEOS POBLACIONES (PBMC+CART) (1).xls"),
     activation = "NO_ACTIVADOS",
     data_type  = "CONTEOS"
   ),

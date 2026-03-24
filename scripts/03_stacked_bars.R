@@ -40,23 +40,25 @@ flow <- readRDS(file.path(project_dir, "data", "processed", "flow_clean.rds"))
 message("Total filas cargadas: ", nrow(flow))
 
 # ── Configuración de poblaciones ──────────────────────────────────────────────
-pops <- c("cd4", "cd8", "b_cells", "monocytes", "nk")
+pops <- c("cd4", "cd8", "b_cells", "monocytes", "nk", "cd14neg_cd16neg")
 
 pop_labels <- c(
-  cd4       = "CD4\u207A",
-  cd8       = "CD8\u207A",
-  b_cells   = "B Cells",
-  monocytes = "Monocytes",
-  nk        = "NK Cells"
+  cd4              = "CD4\u207A",
+  cd8              = "CD8\u207A",
+  b_cells          = "B Cells",
+  monocytes        = "Monocytes",
+  nk               = "NK Cells",
+  cd14neg_cd16neg  = "Other"
 )
 
-# Colores Okabe-Ito (colorblind-safe, 5 poblaciones)
+# Colores Okabe-Ito (colorblind-safe, 6 poblaciones)
 pop_colors <- c(
   "CD4\u207A"  = "#0072B2",
   "CD8\u207A"  = "#D55E00",
   "B Cells"    = "#009E73",
   "Monocytes"  = "#CC79A7",
-  "NK Cells"   = "#E69F00"
+  "NK Cells"   = "#E69F00",
+  "Other"      = "#56B4E9"
 )
 
 # ── Preparación de datos ──────────────────────────────────────────────────────
@@ -81,6 +83,23 @@ print(count(df_sub, activation, cart, tiempo, data_type))
 df_avg <- df_sub |>
   group_by(activation, cart, tiempo, data_type) |>
   summarise(across(all_of(pops), \(x) mean(x, na.rm = TRUE)), .groups = "drop")
+
+# Normalizar a 100%: cada fila se divide por la suma de sus poblaciones
+# para que las barras sumen exactamente 100% independientemente de qué
+# fracción de pbmcs_live representan estas 6 categorías en total.
+df_avg <- df_avg |>
+  rowwise() |>
+  mutate(
+    pop_total = sum(c_across(all_of(pops)), na.rm = TRUE),
+    across(all_of(pops), \(x) x / pop_total * 100)
+  ) |>
+  select(-pop_total) |>
+  ungroup()
+
+message("Verificación sumas por fila (deben ser ~100):")
+print(df_avg |> rowwise() |>
+        mutate(suma = sum(c_across(all_of(pops)), na.rm = TRUE)) |>
+        select(activation, cart, tiempo, suma))
 
 # Formato largo — etiquetas con \n para evitar solapamiento en eje X
 cart_labels <- c("NO" = "-\nCAR-T", "SI" = "+\nCAR-T")
