@@ -147,7 +147,8 @@ group_shapes <- c(
 )
 
 # ── Función de plot ───────────────────────────────────────────────────────────
-make_morph_plot <- function(plot_data, title, y_col, y_lab, log_scale = TRUE) {
+make_morph_plot <- function(plot_data, title, y_col, y_lab, log_scale = TRUE,
+                            y_limits = NULL) {
   p <- ggplot(plot_data,
               aes(x = sph_time_f, y = .data[[y_col]],
                   color = group, group = group, shape = group)) +
@@ -163,6 +164,7 @@ make_morph_plot <- function(plot_data, title, y_col, y_lab, log_scale = TRUE) {
   if (log_scale) {
     p <- p + scale_y_continuous(
       labels = label_scientific(digits = 2),
+      limits = y_limits,
       expand = expansion(mult = c(0.05, 0.08))
     )
   } else {
@@ -183,19 +185,30 @@ act_meta <- list(
   list(val = "SI", suf = "act",   label = "Activated PBMC")
 )
 
+# Calcular rangos globales para área y diámetro (misma escala en act vs noact)
+global_limits <- function(col) {
+  vals <- df[[col]]
+  vals <- vals[is.finite(vals)]
+  pad <- diff(range(vals)) * 0.08
+  c(min(vals) - pad, max(vals) + pad)
+}
+
 plot_vars <- list(
   list(col = "area",
        id  = "area",
        y_lab = "Spheroid area (\u03bcm\u00b2)",
-       log_scale = TRUE),   # TRUE = notación científica
+       log_scale = TRUE,
+       y_limits  = global_limits("area")),
   list(col = "diametro",
        id  = "diametro",
        y_lab = "Spheroid diameter (\u03bcm)",
-       log_scale = TRUE),
+       log_scale = TRUE,
+       y_limits  = global_limits("diametro")),
   list(col = "circularidad",
        id  = "circularidad",
        y_lab = "Circularity (a.u.)",
-       log_scale = FALSE)   # FALSE = escala lineal 0-1
+       log_scale = FALSE,
+       y_limits  = NULL)   # fijo 0-1 dentro de make_morph_plot
 )
 
 for (pvar in plot_vars) {
@@ -207,7 +220,8 @@ for (pvar in plot_vars) {
             paste(levels(droplevels(pd$group)), collapse = ", "))
 
     title <- paste0("A549+MRC-5+", act$label, "+CAR-T")
-    p     <- make_morph_plot(pd, title, pvar$col, pvar$y_lab, pvar$log_scale)
+    p     <- make_morph_plot(pd, title, pvar$col, pvar$y_lab, pvar$log_scale,
+                             pvar$y_limits)
     fname <- paste0("10_", pvar$id, "_", act$suf)
     save_fig(p, fname, 130, 115)
   }
