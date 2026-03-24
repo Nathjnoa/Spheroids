@@ -7,10 +7,12 @@
 # Eje X: tiempo de cultivo del spheroide (24 h = baseline → 96 h = fin).
 #
 # Plots generados:
-#   07_sph_vivas_noact.pdf/.png  — Esferoide/Vivas, PBMCs no activadas
-#   07_sph_vivas_act.pdf/.png    — Esferoide/Vivas, PBMCs activadas
-#   07_pbmc_vivas_noact.pdf/.png — PBMC Vivas,      PBMCs no activadas
-#   07_pbmc_vivas_act.pdf/.png   — PBMC Vivas,      PBMCs activadas
+#   07_esf_vivas_noact.pdf/.png   — Esferoide/Vivas, PBMCs no activadas
+#   07_esf_vivas_act.pdf/.png     — Esferoide/Vivas, PBMCs activadas
+#   07_cd19p_vivas_noact.pdf/.png — Vivas CD19+,     PBMCs no activadas
+#   07_cd19p_vivas_act.pdf/.png   — Vivas CD19+,     PBMCs activadas
+#   07_pbmc_vivas_noact.pdf/.png  — PBMC Vivas,      PBMCs no activadas
+#   07_pbmc_vivas_act.pdf/.png    — PBMC Vivas,      PBMCs activadas
 #
 # Convención de tiempo (igual que scripts 04 y 05):
 #   - La línea + CAR-T comparte el punto sph_time=48h con − CAR-T
@@ -58,8 +60,11 @@ message("=== 07_viabilidad_spheroide.R === ", Sys.time())
 #   col 11 = Esferoide/Vivas,  col 17 = PBMC's Vivas
 #
 # Índices de columna por archivo (posición fija exportada por FlowJo)
-COL_SPH_ACT   <- 10L; COL_PBMC_ACT   <- 14L   # ACTIVADAS
-COL_SPH_NOACT <- 11L; COL_PBMC_NOACT <- 17L   # NO ACTIVADAS
+# Actualizado 2026-03-23: nueva col "volumen" desplazó datos en ACTIVADAS (+1)
+COL_SPH_ACT    <- 11L                             # ACTIVADAS
+COL_SPH_NOACT  <- 11L                             # NO ACTIVADAS
+COL_CD19P_ACT  <- 12L                            # ACTIVADAS:    Vivas CD19+
+COL_CD19P_NOACT <- 13L                           # NO ACTIVADAS: Vivas CD19+
 
 read_viabilidad_cnt <- function(path, activation) {
   raw <- suppressMessages(
@@ -68,22 +73,21 @@ read_viabilidad_cnt <- function(path, activation) {
   # Row 1 = header; data from row 2 onward
   df <- as.data.frame(raw[-1, ])
 
-  col_sph  <- if (activation == "ACTIVADAS") COL_SPH_ACT   else COL_SPH_NOACT
-  col_pbmc <- if (activation == "ACTIVADAS") COL_PBMC_ACT  else COL_PBMC_NOACT
+  col_sph   <- if (activation == "ACTIVADAS") COL_SPH_ACT    else COL_SPH_NOACT
+  col_cd19p <- if (activation == "ACTIVADAS") COL_CD19P_ACT  else COL_CD19P_NOACT
 
+  # Columnas de metadata desplazadas por nueva col "volumen" en posición 2
   data.frame(
     sample_label = as.character(df[[1]]),
-    pbmc         = toupper(trimws(as.character(df[[2]]))),
-    donor        = as.character(df[[3]]),
-    cart         = toupper(trimws(as.character(df[[4]]))),
-    # FlowJo XLS: celdas numéricas pueden llegar como texto — coerción esperada
-    tiempo       = suppressWarnings(as.numeric(df[[5]])),
+    pbmc         = toupper(trimws(as.character(df[[3]]))),
+    donor        = as.character(df[[4]]),
+    cart         = toupper(trimws(as.character(df[[5]]))),
     activation   = activation,
     sph_vivas    = suppressWarnings(as.numeric(df[[col_sph]])),
-    pbmc_vivas   = suppressWarnings(as.numeric(df[[col_pbmc]])),
+    cd19p_vivas  = suppressWarnings(as.numeric(df[[col_cd19p]])),
     stringsAsFactors = FALSE
   ) |>
-    filter(!is.na(tiempo))
+    filter(!is.na(sph_vivas))
 }
 
 # ── Leer ambos archivos ───────────────────────────────────────────────────────
@@ -97,16 +101,25 @@ message("Filas ACTIVADAS:    ", nrow(df_act))
 message("Filas NO_ACTIVADOS: ", nrow(df_noact))
 
 # ── Transformar tiempo y asignar grupos ───────────────────────────────────────
-# Los archivos ya tienen tiempo en horas totales del experimento (24/48/72/96 h)
-# (corregido desde la fuente XLS → XLSX). No se aplica offset aquí.
+# sph_time se calcula a partir del nombre de muestra:
+#   - SOLO: número en nombre = sph_time directamente
+#   - PBMC only: número = PBMC contact time → sph_time = contact + 24
+#   - CAR-T only: número = CAR-T contact time → sph_time = contact + 48
+#   - PBMC+CAR-T: número = CAR-T contact time → sph_time = contact + 48
 df_all <- bind_rows(df_act, df_noact) |>
   mutate(
-    sph_time = tiempo,
+    contact_time = as.numeric(sub(".*?(\\d+)\\s*HORAS.*", "\\1", sample_label)),
     group = case_when(
       pbmc == "NO" & cart == "NO" ~ "Sph. only",
       pbmc == "NO" & cart == "SI" ~ "Sph+CAR-T",
       pbmc == "SI" & cart == "NO" ~ "Sph+PBMC",
       pbmc == "SI" & cart == "SI" ~ "Sph+PBMC+CAR-T"
+    ),
+    sph_time = case_when(
+      group == "Sph. only"        ~ contact_time,
+      group == "Sph+PBMC"         ~ contact_time + 24L,
+      group == "Sph+CAR-T"        ~ contact_time + 48L,
+      group == "Sph+PBMC+CAR-T"   ~ contact_time + 48L
     ),
     group = factor(group,
                    levels = c("Sph. only", "Sph+CAR-T",
@@ -201,7 +214,9 @@ group_shapes <- c(
 )
 
 # ── Función de plot ───────────────────────────────────────────────────────────
-make_viab_plot <- function(plot_data, title, y_lab, legend_nrow = 1) {
+make_viab_plot <- function(plot_data, title, y_lab, legend_nrow = 1,
+                           y_limits = c(300, 30000),
+                           y_breaks = c(1000, 2000, 3000, 5000, 10000, 20000, 30000)) {
   ggplot(plot_data,
          aes(x = sph_time_f, y = value,
              color = group, group = group, shape = group)) +
@@ -212,9 +227,9 @@ make_viab_plot <- function(plot_data, title, y_lab, legend_nrow = 1) {
     scale_shape_manual(values = group_shapes, drop = TRUE,
                        guide = guide_legend(nrow = legend_nrow)) +
     scale_y_log10(
-      breaks = c(1000, 2000, 3000, 5000, 10000, 20000, 30000),
+      breaks = y_breaks,
       labels = label_comma(),
-      limits = c(300, 30000),
+      limits = y_limits,
       expand = expansion(mult = c(0.08, 0.03))
     ) +
     labs(title = title, x = NULL, y = y_lab) +
@@ -233,17 +248,21 @@ plot_vars <- list(
     id     = "esf_vivas",
     y_lab  = "Spheroid viable cells (count)",
     title  = "Spheroid viable cells",
-    # Incluir todos los grupos (spheroide solo, CAR-T solo, ±CAR-T con PBMC)
-    filter_pbmc_only = FALSE
+    filter_pbmc_only = FALSE,
+    y_limits = c(300, 30000),
+    y_breaks = c(1000, 2000, 3000, 5000, 10000, 20000, 30000)
   ),
   list(
-    col    = "pbmc_vivas",
-    id     = "pbmc_vivas",
-    y_lab  = "Viable PBMCs (count)",
-    title  = "PBMC viability in co-culture",
-    # Solo condiciones con PBMC (excluir Esf. solo y CAR-T solo)
-    filter_pbmc_only = TRUE
+    col    = "cd19p_vivas",
+    id     = "cd19p_vivas",
+    y_lab  = "Viable CD19\u207a cells (count)",
+    title  = "Spheroid CD19\u207a viable cells",
+    filter_pbmc_only = FALSE,
+    y_limits = c(50, 15000),
+    y_breaks = c(50, 100, 200, 500, 1000, 2000, 5000, 10000)
   )
+  # PBMC vivas removido: esos conteos vienen de POBLACIONES (flow_clean.rds),
+  # no de VIABILIDAD. Ver script 04_pbmc_live_timecourse.R.
 )
 
 for (pvar in plot_vars) {
@@ -268,7 +287,9 @@ for (pvar in plot_vars) {
     title <- paste0("A549+MRC-5+", act$label, "+CAR-T")
 
     p     <- make_viab_plot(pd, title, pvar$y_lab,
-                             legend_nrow = if (!pvar$filter_pbmc_only) 2L else 1L)
+                             legend_nrow = if (!pvar$filter_pbmc_only) 2L else 1L,
+                             y_limits = pvar$y_limits,
+                             y_breaks = pvar$y_breaks)
     fname <- paste0("07_", pvar$id, "_", act$suf)
     save_fig(p, fname, 130, 110)
   }
