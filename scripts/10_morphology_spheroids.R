@@ -148,7 +148,7 @@ group_shapes <- c(
 
 # ── Función de plot ───────────────────────────────────────────────────────────
 make_morph_plot <- function(plot_data, title, y_col, y_lab, log_scale = TRUE,
-                            y_limits = NULL) {
+                            y_limits = NULL, y_breaks = NULL) {
   p <- ggplot(plot_data,
               aes(x = sph_time_f, y = .data[[y_col]],
                   color = group, group = group, shape = group)) +
@@ -165,7 +165,8 @@ make_morph_plot <- function(plot_data, title, y_col, y_lab, log_scale = TRUE,
     p <- p + scale_y_continuous(
       labels = label_scientific(digits = 2),
       limits = y_limits,
-      expand = expansion(mult = c(0.05, 0.08))
+      breaks = y_breaks,
+      expand = expansion(mult = c(0.05, 0.05))
     )
   } else {
     # Circularidad: rango teórico 0–1, escala lineal
@@ -185,30 +186,42 @@ act_meta <- list(
   list(val = "SI", suf = "act",   label = "Activated PBMC")
 )
 
-# Calcular rangos globales para área y diámetro (misma escala en act vs noact)
-global_limits <- function(col) {
-  vals <- df[[col]]
-  vals <- vals[is.finite(vals)]
-  pad <- diff(range(vals)) * 0.08
-  c(min(vals) - pad, max(vals) + pad)
+# Calcular límites y breaks globales para área y diámetro.
+# Ambas condiciones (act y noact) usan exactamente los mismos límites y breaks.
+global_scale <- function(col) {
+  act_no <- prep_morph_data(df, "NO")[[col]]
+  act_si <- prep_morph_data(df, "SI")[[col]]
+  vals   <- c(act_no, act_si)
+  vals   <- vals[is.finite(vals)]
+  rng    <- range(vals)
+  list(
+    lims   = rng,
+    breaks = pretty(rng, n = 5)
+  )
 }
+
+sc_area     <- global_scale("area")
+sc_diametro <- global_scale("diametro")
 
 plot_vars <- list(
   list(col = "area",
        id  = "area",
        y_lab = "Spheroid area (\u03bcm\u00b2)",
        log_scale = TRUE,
-       y_limits  = global_limits("area")),
+       y_limits  = sc_area$lims,
+       y_breaks  = sc_area$breaks),
   list(col = "diametro",
        id  = "diametro",
        y_lab = "Spheroid diameter (\u03bcm)",
        log_scale = TRUE,
-       y_limits  = global_limits("diametro")),
+       y_limits  = sc_diametro$lims,
+       y_breaks  = sc_diametro$breaks),
   list(col = "circularidad",
        id  = "circularidad",
        y_lab = "Circularity (a.u.)",
        log_scale = FALSE,
-       y_limits  = NULL)   # fijo 0-1 dentro de make_morph_plot
+       y_limits  = NULL,
+       y_breaks  = NULL)
 )
 
 for (pvar in plot_vars) {
@@ -221,7 +234,7 @@ for (pvar in plot_vars) {
 
     title <- paste0("A549+MRC-5+", act$label, "+CAR-T")
     p     <- make_morph_plot(pd, title, pvar$col, pvar$y_lab, pvar$log_scale,
-                             pvar$y_limits)
+                             pvar$y_limits, pvar$y_breaks)
     fname <- paste0("10_", pvar$id, "_", act$suf)
     save_fig(p, fname, 130, 115)
   }
