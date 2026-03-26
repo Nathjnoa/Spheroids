@@ -171,7 +171,7 @@ shps_3 <- c("Sph+CAR-T"       = 18L,
 
 # ── 7. Plot function ──────────────────────────────────────────────────────────
 make_plot <- function(plot_data, title, y_lab) {
-  y_ceil <- max(ceiling(max(plot_data$value, na.rm = TRUE) / 100) * 100, 500)
+  y_ceil <- 3000
   ggplot(plot_data,
          aes(x = tiempo_f, y = value,
              color = group, group = group, shape = group)) +
